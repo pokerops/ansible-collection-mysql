@@ -1,0 +1,10 @@
+---
+- name: Load MySQL facts
+  ansible.builtin.import_playbook: nephelaiio.mysql.facts
+
+- name: Prepare MySQL nodes
+  ansible.builtin.import_playbook: nephelaiio.mysql.prepare
+  when: false
+
+- name: Deploy MySQL cluster
+  ansible.builtin.import_playbook: nephelaiio.mysql.cluster

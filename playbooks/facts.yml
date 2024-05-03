@@ -1,0 +1,93 @@
+---
+- name: Query MySQL cluster status
+  hosts: "{{ mysql_group | default('mysql') }}"
+  become: true
+  tags: always
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Verify mysql variable definitions
+      ansible.builtin.assert:
+        that:
+          - mysql_root_username is defined
+          - mysql_root_password is defined
+        fail_msg: "mysql_root_usernaname and mysql_root_password must be defined"
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: End play for offline hosts
+      ansible.builtin.meta: end_host
+      when:
+        - mysql_daemon in services
+        - services[_mysql_service-name].status != 'running'
+
+    - name: Query cluster status
+      community.mysql.mysql_query:
+        query: select @@global.super_read_only as sro
+        login_user: "{{ mysql_root_username }}"
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: true
+      register: _slave_query
+
+    - name: Set cluster membership facts
+      ansible.builtin.set_fact:
+        _cluster_alien: "{{ _is_alien | bool }}"
+        _cluster_member: "{{ _is_member | bool }}"
+        _cluster_master: "{{ _is_master | bool }}"
+        _cluster_slave: "{{ _is_slave | bool }}"
+      vars:
+        _service: "{{ mysql_daemon }}.service"
+        _is_installed: "{{ _service in services }}"
+        _is_alien: "{{ (not _is_installed) or (_slave_query is failed) }}"
+        _is_member: "{{ not _is_alien }}"
+        _is_slave: "{{ _is_member and (_slave_query.query_result[0][0]['sro'] ==  1) }}"
+        _is_master: "{{ _is_member and not _is_slave }}"
+
+    - name: Group cluster members
+      ansible.builtin.group_by:
+        key: "_cluster_{{ 'alien' if _cluster_alien else _status }}"
+      vars:
+        _status: "{{ 'master' if _cluster_master else 'slave' }}"
+
+    - name: Verify cluster status
+      ansible.builtin.assert:
+        that:
+          - (mysql_bootstrap_allow | default(True) | bool) or _has_master
+          - _unique_master | bool
+          - _slaves_have_master | bool
+        fail_msg: "MySQL cluster is in an inconsistent state"
+      vars:
+        _aliens: "{{ groups['_cluster_alien'] | default([]) }}"
+        _masters: "{{ groups['_cluster_master'] | default([]) }}"
+        _slaves: "{{ groups['_cluster_slave'] | default([]) }}"
+        _unique_master: "{{ _masters | length < 2 }}"
+        _has_master: "{{ _masters | length > 0  }}"
+        _has_slaves: "{{ _slaves | length > 0 }}"
+        _slaves_have_master: "{{ not _has_slaves or _has_master }}"
+
+    - name: Set hostgroup facts
+      ansible.builtin.set_fact:
+        _hosts_cluster: "{{ ansible_play_hosts_all }}"
+        _hosts_masters: "{{ _masters + _bootstrap }}"
+        _hosts_slaves: "{{ _slaves | difference(_bootstrap) }}"
+      vars:
+        _aliens: "{{ groups['_cluster_alien'] | default([]) }}"
+        _masters: "{{ groups['_cluster_master'] | default([]) }}"
+        _slaves: "{{ groups['_cluster_slave'] | default([]) }}"
+        _bootstrap: "{{ [] if (_masters | length > 0) else ([_aliens | first]) }}"
+
+    - name: Debug host cluster role
+      ansible.builtin.debug:
+        msg: "Adding host to {{ 'master' if _master else ('slave' if _slave else 'alien') }} role"
+      vars:
+        _master: "{{ inventory_hostname in _hosts_masters }}"
+        _slave: "{{ inventory_hostname  in _hosts_slaves }}"
+
+    - name: Create cluster role groups
+      ansible.builtin.group_by:
+        key: "_mysql_{{ 'master' if _master else ('slave' if _slave else 'alien') }}"
+      vars:
+        _master: "{{ inventory_hostname in _hosts_masters }}"
+        _slave: "{{ inventory_hostname  in _hosts_slaves }}"
+      changed_when: false

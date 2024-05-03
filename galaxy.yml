@@ -1,0 +1,19 @@
+---
+namespace: nephelaiio
+name: mysql
+version: 0.0.1
+readme: README.md
+authors:
+  - Ted Cook <358176+teddyphreak@users.noreply.github.com>
+description: your collection description
+license:
+  - MIT
+tags:
+  - mysql
+dependencies:
+  "nephelaiio.plugins": "*"
+repository: http://github.com/nephelaiio/ansible-collection-mysql
+documentation: http://github.com/nephelaiio/ansible-collection-mysql
+homepage: http://github.com/nephelaiio/ansible-collection-mysql
+issues: http://github.com/nephelaiio/ansible-collection-mysql/issues
+build_ignore: []

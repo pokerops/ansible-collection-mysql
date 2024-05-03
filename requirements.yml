@@ -1,0 +1,8 @@
+---
+roles:
+  - geerlingguy.mysql
+collections:
+  - name: nephelaiio.mysql
+    source: .
+    type: dir
+  - name: nephelaiio.plugins

@@ -1,0 +1,43 @@
+---
+mysql_repo_deb: "https://dev.mysql.com/get/{{ mysql_apt_config }}_0.8.30-1_all.deb"
+mysql_apt_config: mysql-apt-config
+mysql_pgp_keyserver: BCA43417C3B485DD128EC6D4B7B3B788A8D3785C
+mysql_release: 8.0
+mysql_daemon: mysql
+mysql_backup_dir: "/backup"
+mysql_backup_bin: "/usr/local/bin/mysql-backup"
+mysql_datadir: /var/lib/mysql
+mysql_config_include_files:
+  - src: ansible.cnf
+    force: yes
+mysql_slow_query_log_file: true
+mysql_server_package: "mysql-server"
+mysql_shell_package: "mysql-shell"
+
+mysql_config_overrides: |
+  [mysqld]
+
+  #-- connections
+  max_connections = 512
+
+  #-- logs
+  general_log = OFF
+  general_log_file = /var/log/mysql/mysql.log
+  slow_query_log = on
+  slow_query_log_file = /var/log/mysql/mysql-slow.log
+  log_error = /var/log/mysql/mysql-err.log
+
+  #-- innodb
+  innodb_dedicated_server = OFF
+  innodb_buffer_pool_size = 8G
+  innodb_log_buffer_size = 256M
+  innodb_log_file_size = 1G
+  innodb_log_files_in_group = 9
+
+  #-- Binary Log
+  max_binlog_size = 100M
+  binlog_expire_logs_seconds = 604800
+
+  #-- Relay Log
+  relay-log = /var/lib/mysql/relay-bin
+  relay-log_index = /var/lib/mysql/relay-bin.index
