@@ -10,9 +10,19 @@ mysql_datadir: /var/lib/mysql
 mysql_config_include_files:
   - src: ansible.cnf
     force: yes
+  - src: cluster.cnf
+    force: yes
 mysql_slow_query_log_file: true
+mysql_clusteradmin_username: clusteradmin
+mysql_root_username: root
+mysql_root_password_update: true
 mysql_server_package: "mysql-server"
+mysql_client_package: "mysql-client"
 mysql_shell_package: "mysql-shell"
+mysql_hostgroups:
+  - _mysql_master
+  - _mysql_slave
+  - _mysql_alien
 
 mysql_config_overrides: |
   [mysqld]

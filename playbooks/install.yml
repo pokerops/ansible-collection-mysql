@@ -1,10 +1,9 @@
 ---
 - name: Load MySQL facts
-  ansible.builtin.import_playbook: nephelaiio.mysql.facts
+  ansible.builtin.import_playbook: pokerops.mysql.facts
 
 - name: Prepare MySQL nodes
-  ansible.builtin.import_playbook: nephelaiio.mysql.prepare
-  when: false
+  ansible.builtin.import_playbook: pokerops.mysql.prepare
 
-- name: Deploy MySQL cluster
-  ansible.builtin.import_playbook: nephelaiio.mysql.cluster
+- name: Deploy MySQL components
+  ansible.builtin.import_playbook: pokerops.mysql.mysql

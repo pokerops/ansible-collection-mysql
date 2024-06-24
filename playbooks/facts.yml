@@ -6,13 +6,6 @@
   vars_files:
     - vars.yml
   tasks:
-    - name: Verify mysql variable definitions
-      ansible.builtin.assert:
-        that:
-          - mysql_root_username is defined
-          - mysql_root_password is defined
-        fail_msg: "mysql_root_usernaname and mysql_root_password must be defined"
-
     - name: Gather service facts
       ansible.builtin.service_facts:
 
@@ -20,11 +13,19 @@
       ansible.builtin.meta: end_host
       when:
         - mysql_daemon in services
-        - services[_mysql_service-name].status != 'running'
+        - services[mysql_daemon].state != 'running'
+
+    - name: Query cluster membership
+      community.mysql.mysql_query:
+        query: "SELECT * FROM performance_schema.replication_group_members WHERE member_host='{{ inventory_hostname }}';"
+        login_user: "{{ mysql_root_username }}"
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: true
+      register: _member_query
 
     - name: Query cluster status
       community.mysql.mysql_query:
-        query: select @@global.super_read_only as sro
+        query: SELECT @@global.super_read_only AS sro
         login_user: "{{ mysql_root_username }}"
         login_password: "{{ mysql_root_password }}"
       ignore_errors: true
@@ -39,7 +40,7 @@
       vars:
         _service: "{{ mysql_daemon }}.service"
         _is_installed: "{{ _service in services }}"
-        _is_alien: "{{ (not _is_installed) or (_slave_query is failed) }}"
+        _is_alien: "{{ (not _is_installed) or (_member_query is failed) or (_member_query.rowcount | first == 0) }}"
         _is_member: "{{ not _is_alien }}"
         _is_slave: "{{ _is_member and (_slave_query.query_result[0][0]['sro'] ==  1) }}"
         _is_master: "{{ _is_member and not _is_slave }}"
@@ -49,6 +50,7 @@
         key: "_cluster_{{ 'alien' if _cluster_alien else _status }}"
       vars:
         _status: "{{ 'master' if _cluster_master else 'slave' }}"
+      changed_when: false
 
     - name: Verify cluster status
       ansible.builtin.assert:
@@ -65,6 +67,7 @@
         _has_master: "{{ _masters | length > 0  }}"
         _has_slaves: "{{ _slaves | length > 0 }}"
         _slaves_have_master: "{{ not _has_slaves or _has_master }}"
+      when: false
 
     - name: Set hostgroup facts
       ansible.builtin.set_fact:

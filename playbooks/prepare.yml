@@ -1,13 +1,27 @@
 ---
 - name: Deploy MySQL repository
   hosts: "_mysql_master:_mysql_slave:_mysql_alien"
+  become: true
   vars_files:
     - vars.yml
-  pre_tasks:
+  tasks:
+    - name: Verify mysql variable definitions
+      ansible.builtin.assert:
+        that:
+          - mysql_root_password is defined
+          - mysql_clusteradmin_password is defined
+          - mysql_cluster_name is defined
+        fail_msg: "mysql_cluster_name, mysql_root_password and mysql_clusteradmin_password must be defined"
+
+    - name: Check package pins
+      ansible.builtin.assert:
+        that: mysql_shell_package is not search('=')
+        fail_msg: "Playbook does not support mysql_shell package pinning, got {{ mysql_shell_package }}"
+
     - name: Deploy Debian MySQL repository
       when: ansible_os_family == 'Debian'
       block:
-        - name: Query package list
+        - name: Query installed packages
           ansible.builtin.package_facts:
             manager: auto
 
@@ -19,6 +33,7 @@
           changed_when: false
 
         - name: Deploy MySQL apt repository
+          when: mysql_apt_config not in packages
           block:
             - name: Download MySQL apt repository
               ansible.builtin.get_url:
@@ -38,15 +53,15 @@
 
             - name: Configure MySQL release version
               ansible.builtin.debconf:
-                name: mysql-apt-config
-                question: mysql-apt-config/select-server
+                name: "{{ mysql_apt_config }}"
+                question: "{{ mysql_apt_config }}/select-server"
                 value: "mysql-{{ mysql_release}}"
                 vtype: select
 
             - name: Activate MySQL release version
               ansible.builtin.debconf:
-                name: mysql-apt-config
-                question: mysql-apt-config/select-product
+                name: "{{ mysql_apt_config }}"
+                question: "{{ mysql_apt_config }}/select-product"
                 value: Ok
                 vtype: select
 
@@ -67,3 +82,4 @@
             name:
               - apparmor
               - debconf-utils
+              - python3-pexpect

@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+
+[mysqld]
+binlog_transaction_dependency_tracking = WRITESET
+enforce_gtid_consistency = ON
+gtid_mode = ON
+server_id = {{ range(2, 4294967295) | random(seed=inventory_hostname) }}

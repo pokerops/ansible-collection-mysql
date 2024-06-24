@@ -7,12 +7,14 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: mysql-install-01
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-01
     image: "geerlingguy/docker-${MOLECULE_DOCKER_IMAGE:-ubuntu2204}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    networks:
+      - name: mysql-${MOLECULE_SCENARIO_NAME}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     tmpfs:
@@ -20,12 +22,14 @@ platforms:
       - /opt
     groups:
       - mysql
-  - name: mysql-install-02
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-02
     image: "geerlingguy/docker-${MOLECULE_DOCKER_IMAGE:-ubuntu2204}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    networks:
+      - name: mysql-${MOLECULE_SCENARIO_NAME}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     tmpfs:
@@ -33,12 +37,14 @@ platforms:
       - /opt
     groups:
       - mysql
-  - name: mysql-install-03
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-03
     image: "geerlingguy/docker-${MOLECULE_DOCKER_IMAGE:-ubuntu2204}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    networks:
+      - name: mysql-${MOLECULE_SCENARIO_NAME}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     tmpfs:
@@ -63,8 +69,9 @@ provisioner:
       all:
         vars:
           mysql_nolog: false
-          mysql_root_username: mysql
           mysql_root_password: molecule
+          mysql_clusteradmin_password: molecule
+          mysql_cluster_name: molecule
 verifier:
   name: ansible
 scenario:
