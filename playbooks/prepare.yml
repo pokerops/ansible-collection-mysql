@@ -23,7 +23,7 @@
         _fqdn: "{{ hostvars[item]['ansible_fqdn'] }}"
         _hostname: "{{ hostvars[item]['ansible_hostname'] }}"
       loop: "{{ ansible_play_hosts }}"
-      when: mysql_config_hostnames
+      when: mysql_config_hostnames | default(True) | bool
 
     - name: Check package pins
       ansible.builtin.assert:
