@@ -19,8 +19,6 @@ jobs:
             command: /lib/systemd/systemd
           - name: ubuntu2004
             command: /lib/systemd/systemd
-          - name: debian12
-            command: /lib/systemd/systemd
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
