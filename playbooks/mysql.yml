@@ -1,4 +1,3 @@
-
 ---
 - name: Query MySQL package versions on master nodes
   hosts: "_mysql_master"
