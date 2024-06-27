@@ -166,8 +166,10 @@
 
     - name: Set cluster facts
       ansible.builtin.set_fact:
-        _mysql_cluster_targets: "{{ mysql_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
+        _mysql_cluster_targets: "{{ _mysql_groups | map('extract', groups) | flatten | unique }}"
         _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
+      vars:
+        _mysql_groups: "{{ mysql_hostgroups | intersect(groups.keys()) }}"
 
     - name: Initialize InnoDB cluster
       when: _mysql_cluster_members | length == 0
@@ -248,3 +250,20 @@
           register: _mysql_cluster_del
           failed_when: _mysql_out is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_member_del }}"
+
+    - name: Manage InnoDB cluster DBs and users
+      block:
+        - name: Include MySQL variables
+          ansible.builtin.include_role:
+            name: pokerops.mysql.mysql
+            tasks_from: "variables"
+
+        - name: Configure MySQL cluster databases
+          ansible.builtin.include_role:
+            name: pokerops.mysql.mysql
+            tasks_from: "databases"
+
+        - name: Configure MySQL cluster users
+          ansible.builtin.include_role:
+            name: pokerops.mysql.mysql
+            tasks_from: "users"
