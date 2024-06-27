@@ -9,7 +9,8 @@ on:
 jobs:
   molecule:
     name: molecule
-    runs-on: ubuntu-latest
+    runs-on: libvirt
+    needs: version
     strategy:
       matrix:
         scenario:

@@ -20,9 +20,9 @@
               changed_when: false
               register: mysql_server_package_query
 
-            - name: Set MySQL package facts
+            - name: Set MySQL master package facts
               ansible.builtin.set_fact:
-                mysql_packages:
+                mysql_master_packages:
                   - "{{ mysql_server_package }}={{ mysql_server_package_query.stdout }}"
                   - "{{ mysql_client_package }}={{ mysql_server_package_query.stdout }}"
                   - "{{ mysql_shell_package }}"
@@ -32,74 +32,55 @@
           block:
             - name: Query target MySQL server package version
               ansible.builtin.shell:
-                cmd: "apt-cache madison {{ mysql_server_package }} | awk '{ print $3 }' | grep '^{{ mysql_release }}' | sort -r | head -1"
+                cmd: "apt-cache madison {{ mysql_server_package }} | awk '{ print $3 }' | grep '^{{ _mysql_release }}' | sort -r | head -1"
+              vars:
+                _mysql_release: "{{ mysql_release | default('8.0') }}"
               changed_when: false
               register: mysql_server_package_query
 
-            - name: Set MySQL package facts
+            - name: Set MySQL master package facts
               ansible.builtin.set_fact:
-                mysql_packages:
+                mysql_master_packages:
                   - "{{ mysql_server_package }}={{ mysql_server_package_query.stdout }}"
                   - "{{ mysql_client_package }}={{ mysql_server_package_query.stdout }}"
                   - "{{ mysql_shell_package }}"
 
     - name: Set MySQL package facts
       ansible.builtin.set_fact:
-        mysql_packages:
+        mysql_master_packages:
           - "{{ mysql_server_package }}"
           - "{{ mysql_client_package }}"
           - "{{ mysql_shell_package }}"
       when: mysql_server_package is search('=')
 
+    - name: Set MySQL package facts for cluster members
+      ansible.builtin.set_fact:
+        mysql_packages: "{{ mysql_master_packages }}"
+      loop: "{{ groups[mysql_group | default('mysql')] }}"
+      delegate_to: "{{ item }}"
+      delegate_facts: true
 
-- name: Deploy MySQL packages on replica nodes
-  hosts: "_mysql_alien:_mysql_slave"
+
+- name: Deploy MySQL packages on alien nodes
+  hosts: "_mysql_alien"
   become: true
   vars_files:
     - vars.yml
-  vars:
-    mysql_alien: "{{ inventory_hostname in groups['_mysql_alien'] }}"
-    mysql_manage_config: true
-    mysql_manage_replication: false
-    mysql_manage_security: "{{ mysql_alien | bool }}"
-    mysql_manage_dbs: "{{ mysql_alien | bool }}"
-    mysql_manage_users: "{{ mysql_alien | bool }}"
   tasks:
-    - name: Set target package facts
-      ansible.builtin.set_fact:
-        mysql_packages: "{{ groups['_mysql_master'] | map('extract', hostvars, 'mysql_packages') | first }}"
-
-    - name: Query installed packages
-      ansible.builtin.package_facts:
-        manager: auto
-
-    - name: Unhold MySQL packages
-      ansible.builtin.dpkg_selections:
-        name: "{{ item }}"
-        selection: install
-      when: item in packages
-      loop: "{{ mysql_packages | map('split', '=') | map('first') }}"
-      changed_when: false
-
     - name: Deploy MySQL service
       ansible.builtin.include_role:
-        name: pokerops.mysql.mysql
+        name: pokerops.mysql.cluster
 
-    - name: Hold MySQL packages
-      ansible.builtin.dpkg_selections:
-        name: "{{ item }}"
-        selection: hold
-      loop: "{{ mysql_packages | map('split', '=') | map('first') }}"
-      changed_when: false
 
-    - name: Manage MySQL clusteradmin user
-      community.mysql.mysql_user:
-        name: "{{ mysql_clusteradmin_username }}"
-        host: '%'
-        password: "{{ mysql_clusteradmin_password }}"
-        priv: '*.*:ALL,GRANT'
-        column_case_sensitive: true
-      no_log: "{{ mysql_nolog | default(True) }}"
+- name: Deploy MySQL packages on slave nodes
+  hosts: "_mysql_slave"
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Deploy MySQL service
+      ansible.builtin.include_role:
+        name: pokerops.mysql.cluster
 
 
 - name: Deploy MySQL packages on master nodes
@@ -107,50 +88,14 @@
   become: true
   vars_files:
     - vars.yml
-  vars:
-    mysql_manage_config: true
-    mysql_manage_replication: false
-    mysql_manage_security: true
-    mysql_manage_dbs: true
-    mysql_manage_users: true
   tasks:
-    - name: Query installed packages
-      ansible.builtin.package_facts:
-        manager: auto
-
-    - name: Unhold MySQL packages
-      ansible.builtin.dpkg_selections:
-        name: "{{ item }}"
-        selection: install
-      when: item in packages
-      loop: "{{ mysql_packages | map('split', '=') | map('first') }}"
-      changed_when: false
-
     - name: Deploy MySQL service
       ansible.builtin.include_role:
-        name: pokerops.mysql.mysql
-
-    - name: Hold MySQL packages
-      ansible.builtin.dpkg_selections:
-        name: "{{ item }}"
-        selection: hold
-      loop: "{{ mysql_packages | map('split', '=') | map('first') }}"
-      changed_when: false
-
-    - name: Manage MySQL clusteradmin user
-      community.mysql.mysql_user:
-        name: "{{ mysql_clusteradmin_username }}"
-        host: '%'
-        password: "{{ mysql_clusteradmin_password }}"
-        priv: '*.*:ALL,GRANT'
-        column_case_sensitive: true
-      no_log: "{{ mysql_nolog | default(True) }}"
+        name: pokerops.mysql.cluster
 
 
 - name: Store MySQL cluster credentials
   hosts: "_mysql_master:_mysql_slave:_mysql_alien"
-  vars:
-    mysqlsh_configdir: "~/.mysqlsh"
   vars_files:
     - vars.yml
   tasks:
@@ -214,7 +159,7 @@
     - name: Query cluster membership
       community.mysql.mysql_query:
         query: "SELECT member_host FROM performance_schema.replication_group_members"
-        login_user: "{{ mysql_root_username }}"
+        login_user: "{{ mysql_root_username | default('root') }}"
         login_password: "{{ mysql_root_password }}"
       ignore_errors: true
       register: _member_query
@@ -243,8 +188,10 @@
           vars:
             _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
             _mysql_cmd: 'dba.createCluster("{{ mysql_cluster_name }}")'
+            _mysql_output: "{{ _mysql_cluster_bootstrap.stderr }}"
+            _mysql_msg: "Cluster successfully created"
           register: _mysql_cluster_bootstrap
-          failed_when: _mysql_cluster_bootstrap.stderr is not search('Cluster successfully created')
+          failed_when: _mysql_output is not search(_mysql_msg)
 
         - name: Add InnoDB cluster instances
           ansible.builtin.command:
@@ -253,8 +200,10 @@
             _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
             _mysql_cmd: 'cluster.addInstance("{{ _mysql_instance }}", {recoveryProgress: 0, recoveryMethod: "clone"})'
-          register: _mysql_cluster_bootstrap
-          failed_when: _mysql_cluster_bootstrap.stderr is not search('Cluster successfully created')
+            _mysql_out: "{{ _mysql_cluster_join.stderr }}"
+            _mysql_msg: "The instance '{{ item }}:3306' was successfully added to the cluster"
+          register: _mysql_cluster_join
+          failed_when: _mysql_out is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_targets | difference([inventory_hostname]) }}"
 
     - name: Manage InnoDB cluster state
@@ -280,6 +229,10 @@
             _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
             _mysql_cmd: 'cluster.addInstance("{{ _mysql_instance }}", {recoveryProgress: 0, recoveryMethod: "clone"})'
+            _mysql_out: "{{ _mysql_cluster_join.stderr }}"
+            _mysql_msg: "The instance '{{ item }}:3306' was successfully added to the cluster"
+          register: _mysql_cluster_join
+          failed_when: _mysql_out is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_member_add }}"
 
         - name: Remove InnoDB cluster members
@@ -288,5 +241,9 @@
           vars:
             _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_cmd: 'cluster.addInstance("{{ _mysql_instance }}", { "recoveryProgress": 0 })'
+            _mysql_cmd: 'cluster.removeInstance("{{ _mysql_instance }}", { "recoveryProgress": 0 })'
+            _mysql_out: "{{ _mysql_cluster_del.stderr }}"
+            _mysql_msg: "The instance '{{ item }}:3306' was successfully removed from the cluster"
+          register: _mysql_cluster_del
+          failed_when: _mysql_out is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_member_del }}"
