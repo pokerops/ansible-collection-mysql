@@ -178,8 +178,9 @@
           vars:
             _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ item }}"
             _mysql_cmd: "'dba.checkInstanceConfiguration()'"
+            _mysql_msg: "Instance configuration is compatible with InnoDB cluster"
           register: _mysql_check_instance
-          failed_when: _mysql_check_instance.stderr is not search('Instance configuration is compatible with InnoDB cluster')
+          failed_when: _mysql_check_instance.stderr is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_targets }}"
 
         - name: Bootstrap InnoDB cluster
@@ -199,7 +200,7 @@
           vars:
             _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_cmd: 'cluster.addInstance("{{ _mysql_instance }}", {recoveryProgress: 0, recoveryMethod: "clone"})'
+            _mysql_cmd: 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
             _mysql_out: "{{ _mysql_cluster_join.stderr }}"
             _mysql_msg: "The instance '{{ item }}:3306' was successfully added to the cluster"
           register: _mysql_cluster_join
@@ -228,7 +229,7 @@
           vars:
             _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_cmd: 'cluster.addInstance("{{ _mysql_instance }}", {recoveryProgress: 0, recoveryMethod: "clone"})'
+            _mysql_cmd: 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
             _mysql_out: "{{ _mysql_cluster_join.stderr }}"
             _mysql_msg: "The instance '{{ item }}:3306' was successfully added to the cluster"
           register: _mysql_cluster_join
@@ -241,7 +242,7 @@
           vars:
             _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_cmd: 'cluster.removeInstance("{{ _mysql_instance }}", { "recoveryProgress": 0 })'
+            _mysql_cmd: 'cluster.removeInstance("{{ _mysql_instance }}")'
             _mysql_out: "{{ _mysql_cluster_del.stderr }}"
             _mysql_msg: "The instance '{{ item }}:3306' was successfully removed from the cluster"
           register: _mysql_cluster_del
