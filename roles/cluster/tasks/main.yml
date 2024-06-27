@@ -5,6 +5,10 @@
       - mysql_packages is defined
       - mysql_root_password is defined
 
+- name: Debug package targets
+  ansible.builtin.debug:
+    var: mysql_packages
+
 - name: Set install facts
   ansible.builtin.set_fact:
     mysql_root_password_update: true
