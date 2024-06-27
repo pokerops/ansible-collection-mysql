@@ -34,7 +34,7 @@ lint: install
 	poetry run ansible-lint .
 
 requirements: install
-	@rm -rf ${ROLE_DIR}/*
+	@yq '.roles[].name' =r < roles.yml | xargs -I {} rm -rf roles/{}
 	@python --version
 	@poetry run ansible-galaxy role install \
 		--force --no-deps \
