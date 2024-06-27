@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: mysql_repo
+  author: pokerops
+  description: MySQL repository
+  license: "MIT"
+  min_ansible_version: "2.10"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - mysql
+    - repo
+
+dependencies: []

@@ -1,6 +1,4 @@
 ---
-roles:
-  - geerlingguy.mysql
 collections:
   - name: pokerops.mysql
     source: .
