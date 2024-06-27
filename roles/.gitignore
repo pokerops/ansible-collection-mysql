@@ -1,2 +1,6 @@
 *
 !.gitignore
+!repo/
+!repo/**
+!cluster/
+!cluster/**
