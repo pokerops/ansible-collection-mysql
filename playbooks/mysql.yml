@@ -93,6 +93,31 @@
       ansible.builtin.include_role:
         name: pokerops.mysql.cluster
 
+    - name: Slurp my.cnf for root user
+      ansible.builtin.slurp:
+        path: "{{ mysql_root_home }}/.my.cnf"
+      register: _mysql_mycnf_slurp
+
+    - name: Set my.cnf facts
+      ansible.builtin.set_fact:
+        mysql_config_mycnf: "{{ _mysql_mycnf_slurp.content | ansible.builtin.b64decode }}"
+      loop: "{{ groups[mysql_group | default('mysql')] }}"
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+
+
+- name: Distribute MySQL my.cnf to slave nodes
+  hosts: "_mysql_slave"
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Write my.cnf configuration
+      ansible.builtin.copy:
+        dest: "{{ mysql_root_home }}/.my.cnf"
+        content: "{{ mysql_config_mycnf }}"
+        mode: "u=rw,go="
+
 
 - name: Store MySQL cluster credentials
   hosts: "_mysql_master:_mysql_slave:_mysql_alien"
