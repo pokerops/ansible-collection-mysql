@@ -7,6 +7,7 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 
 ## ToDo
 
+* Add slurp and distribution tasks for root user's .my.cnf
 * Add cluster failover and failback test scenario
 * Add database and user management to install scenario
 * Add cluster backup and restore scripts and test scenario
