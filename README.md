@@ -13,6 +13,7 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 * Add cluster scale-up / scale-down test scenarios 
 * Add mysqlrouter playbook and test scenario
 * Add cluster failover deployment option and test scenario
+* Split cluster and repo roles to separate repositories
 
 ## Collection hostgroups
 
