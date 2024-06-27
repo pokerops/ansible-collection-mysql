@@ -10,7 +10,6 @@ jobs:
   molecule:
     name: molecule
     runs-on: libvirt
-    needs: version
     strategy:
       matrix:
         scenario:
