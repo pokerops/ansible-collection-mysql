@@ -11,13 +11,17 @@
 
 - name: Set install facts
   ansible.builtin.set_fact:
-    mysql_root_password_update: true
     mysql_install_packages: false
     mysql_config_include_files:
       - src: ansible.cnf
         force: yes
       - src: cluster.cnf
         force: yes
+
+- name: Set root password update flag
+  ansible.builtin.set_fact:
+    mysql_root_password_update: true
+  when: mysql_root_password_update is not defined
 
 - name: Query installed packages
   ansible.builtin.package_facts:
