@@ -174,10 +174,9 @@
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
       vars:
-        _mysqlsh_uri_local: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
-        _mysqlsh_uri_remote: "{{ mysql_clusteradmin_username }}@{{ item }}"
-        _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri_remote }}")'
-        _mysqlsh_options: "--javascript --password --save-passwords=always --quiet-start=2 --uri {{ _mysqlsh_uri_local }}"
+        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@{{ item }}"
+        _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri }}")'
+        _mysqlsh_options: "--javascript --password --save-passwords=always --quiet-start=2"
       loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
