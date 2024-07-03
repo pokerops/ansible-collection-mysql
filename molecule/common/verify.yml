@@ -21,11 +21,12 @@
 
     - name: Query MySQL cluster status
       ansible.builtin.command:
-        cmd: "mysqlsh {{ _mysqlsh_options }} --execute '{{ _mysqlsh_command }}' --uri {{ _mysqlsh_uri }}"
-      vars:
-        _mysqlsh_uri: "'{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}'"
-        _mysqlsh_options: "--cluster --javascript --quiet-start=2 --password={{ mysql_clusteradmin_password }}"
-        _mysqlsh_command: 'print(cluster.status())'
+        cmd: >
+          mysqlsh --cluster --javascript --quiet-start=2
+            --password={{ mysql_clusteradmin_password }}
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --execute 'print(cluster.status())'
       register: _mysql_cluster_status_query
       changed_when: false
 
