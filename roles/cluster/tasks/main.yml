@@ -2,12 +2,12 @@
 - name: Verify role preconditions
   ansible.builtin.assert:
     that:
-      - mysql_packages is defined
+      - mysql_cluster_packages is defined
       - mysql_root_password is defined
 
 - name: Debug package targets
   ansible.builtin.debug:
-    var: mysql_packages
+    var: mysql_cluster_packages
 
 - name: Set install facts
   ansible.builtin.set_fact:
@@ -32,7 +32,7 @@
     name: "{{ item }}"
     selection: install
   when: item in packages
-  loop: "{{ mysql_packages | map('split', '=') | map('first') }}"
+  loop: "{{ mysql_cluster_packages | map('split', '=') | map('first') }}"
   changed_when: false
 
 - name: Include MySQL variables
@@ -44,6 +44,8 @@
   ansible.builtin.include_role:
     name: pokerops.mysql.mysql
     tasks_from: "setup-{{ ansible_os_family }}"
+  vars:
+    mysql_packages: "{{ mysql_cluster_packages }}"
 
 - name: Configure MySQL installation
   ansible.builtin.include_role:
@@ -71,5 +73,5 @@
   ansible.builtin.dpkg_selections:
     name: "{{ item }}"
     selection: hold
-  loop: "{{ mysql_packages | map('split', '=') | map('first') }}"
+  loop: "{{ mysql_cluster_packages | map('split', '=') | map('first') }}"
   changed_when: false

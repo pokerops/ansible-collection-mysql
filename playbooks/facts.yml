@@ -1,6 +1,6 @@
 ---
 - name: Query MySQL cluster status
-  hosts: "{{ mysql_group | default('mysql') }}"
+  hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
   become: true
   tags: always
   vars_files:

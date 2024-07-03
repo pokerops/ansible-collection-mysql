@@ -21,7 +21,7 @@ platforms:
       - /tmp
       - /opt
     groups:
-      - mysql
+      - mysql_cluster
   - name: mysql-${MOLECULE_SCENARIO_NAME}-02
     image: "geerlingguy/docker-${MOLECULE_DOCKER_IMAGE:-ubuntu2204}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
@@ -36,7 +36,7 @@ platforms:
       - /tmp
       - /opt
     groups:
-      - mysql
+      - mysql_cluster
   - name: mysql-${MOLECULE_SCENARIO_NAME}-03
     image: "geerlingguy/docker-${MOLECULE_DOCKER_IMAGE:-ubuntu2204}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
@@ -51,7 +51,7 @@ platforms:
       - /tmp
       - /opt
     groups:
-      - mysql
+      - mysql_cluster
 provisioner:
   name: ansible
   config_options:

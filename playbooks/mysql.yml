@@ -55,8 +55,8 @@
 
     - name: Set MySQL package facts for cluster members
       ansible.builtin.set_fact:
-        mysql_packages: "{{ mysql_master_packages }}"
-      loop: "{{ groups[mysql_group | default('mysql')] }}"
+        mysql_cluster_packages: "{{ mysql_master_packages }}"
+      loop: "{{ groups[mysql_cluster_group | default('mysql_cluster')] }}"
       delegate_to: "{{ item }}"
       delegate_facts: true
 
@@ -108,7 +108,7 @@
     - name: Set my.cnf facts
       ansible.builtin.set_fact:
         mysql_config_mycnf: "{{ _mysql_mycnf_slurp.content | ansible.builtin.b64decode }}"
-      loop: "{{ groups[mysql_group | default('mysql')] }}"
+      loop: "{{ groups[mysql_cluster_group | default('mysql_cluster')] }}"
       delegate_to: "{{ item }}"
       delegate_facts: true
 
@@ -154,15 +154,14 @@
 
     - name: Store MySQL cluster local credentials
       ansible.builtin.expect:
-        command: "mysqlsh {{ _mysqlsh_options }} --execute '{{ _mysqlsh_command }}'"
+        command: "mysqlsh {{ _mysqlsh_options }}"
         responses:
-          "^> $": "\\q"
+          ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
       vars:
-        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@localhost"
-        _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri }}")'
-        _mysqlsh_options: "--javascript --save-passwords=always --quiet-start=2"
+        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
+        _mysqlsh_options: "--javascript --password --save-passwords=always --quiet-start=2  --uri {{ _mysqlsh_uri }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
 
@@ -170,14 +169,15 @@
       ansible.builtin.expect:
         command: "mysqlsh {{ _mysqlsh_options }} --execute '{{ _mysqlsh_command }}'"
         responses:
-          "^> $": "\\q"
+          ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
       vars:
-        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@{{ item }}"
-        _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri }}")'
-        _mysqlsh_options: "--javascript --save-passwords=always --quiet-start=2"
-      loop: "{{ mysql_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
+        _mysqlsh_uri_local: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
+        _mysqlsh_uri_remote: "{{ mysql_clusteradmin_username }}@{{ item }}"
+        _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri_remote }}")'
+        _mysqlsh_options: "--javascript --password --save-passwords=always --quiet-start=2 --uri {{ _mysqlsh_uri_local }}"
+      loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
 
@@ -198,10 +198,10 @@
 
     - name: Set cluster facts
       ansible.builtin.set_fact:
-        _mysql_cluster_targets: "{{ _mysql_groups | map('extract', groups) | flatten | unique }}"
+        _mysql_cluster_targets: "{{ _mysql_cluster_groups | map('extract', groups) | flatten | unique }}"
         _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
       vars:
-        _mysql_groups: "{{ mysql_hostgroups | intersect(groups.keys()) }}"
+        _mysql_cluster_groups: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) }}"
 
     - name: Initialize InnoDB cluster
       when: _mysql_cluster_members | length == 0
