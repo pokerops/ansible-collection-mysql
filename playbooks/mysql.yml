@@ -154,14 +154,15 @@
 
     - name: Store MySQL cluster local credentials
       ansible.builtin.expect:
-        command: "mysqlsh {{ _mysqlsh_options }}"
+        command: "mysqlsh {{ _mysqlsh_options }} --execute '{{ _mysqlsh_command }}'"
         responses:
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
       vars:
-        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
-        _mysqlsh_options: "--javascript --password --save-passwords=always --quiet-start=2  --uri {{ _mysqlsh_uri }}"
+        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@localhost"
+        _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri }}")'
+        _mysqlsh_options: "--javascript --save-passwords=always --quiet-start=2"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
 
