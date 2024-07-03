@@ -50,15 +50,8 @@
     name: pokerops.mysql.mysql
     tasks_from: "configure"
 
-- name: Query cluster status
-  community.mysql.mysql_query:
-    query: SELECT @@global.super_read_only AS sro
-    login_user: "{{ mysql_root_username }}"
-    login_password: "{{ mysql_root_password }}"
-  register: _slave_query
-
 - name: Manage MySQL deployment
-  when: _slave_query.query_result[0][0]['sro'] ==  0
+  when: mysql_manage_security | bool
   block:
     - name: Secure MySQL installation
       ansible.builtin.include_role:

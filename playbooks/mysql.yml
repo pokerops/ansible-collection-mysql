@@ -70,6 +70,8 @@
     - name: Deploy MySQL service
       ansible.builtin.include_role:
         name: pokerops.mysql.cluster
+      vars:
+        mysql_manage_security: true
 
 
 - name: Deploy MySQL packages on slave nodes
@@ -83,6 +85,7 @@
         name: pokerops.mysql.cluster
       vars:
         mysql_root_password_update: false
+        mysql_manage_security: false
 
 
 - name: Deploy MySQL packages on master nodes
@@ -94,6 +97,8 @@
     - name: Deploy MySQL service
       ansible.builtin.include_role:
         name: pokerops.mysql.cluster
+      vars:
+        mysql_manage_security: true
 
     - name: Slurp my.cnf for root user
       ansible.builtin.slurp:

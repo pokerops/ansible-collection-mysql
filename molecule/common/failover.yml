@@ -4,16 +4,16 @@
   vars_files:
     - ../../playbooks/vars.yml
   tasks:
-    - name: Query cluster status
-      community.mysql.mysql_query:
-        query: SELECT @@global.super_read_only AS sro
-        login_user: "{{ mysql_root_username | default('root') }}"
-        login_password: "{{ mysql_root_password }}"
+    - name: Query MySQL cluster status
+      ansible.builtin.command:
+        cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
+      vars:
+        _mysql_cmd: 'SELECT @@global.super_read_only AS sro'
       register: _slave_query
 
     - name: Stop play for slave nodes
       ansible.builtin.meta: end_host
-      when: _slave_query.query_result[0][0]['sro'] ==  1
+      when: _slave_query.stdout | int ==  1
 
     - name: Set cluster master facts
       ansible.builtin.set_fact:
@@ -29,7 +29,7 @@
 
     - name: Wait for cluster failover
       ansible.builtin.pause:
-        seconds: 30
+        seconds: 10
 
     - name: Start MySQL daemon
       ansible.builtin.service:
@@ -42,16 +42,16 @@
   vars_files:
     - ../../playbooks/vars.yml
   tasks:
-    - name: Query cluster status
-      community.mysql.mysql_query:
-        query: SELECT @@global.super_read_only AS sro
-        login_user: "{{ mysql_root_username | default('root') }}"
-        login_password: "{{ mysql_root_password }}"
+    - name: Query MySQL cluster status
+      ansible.builtin.command:
+        cmd: "mysql -h '127.0.0.1' -sN -e \"{{ _mysql_cmd }}\""
+      vars:
+        _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       register: _slave_query
 
     - name: Stop play for slave nodes
       ansible.builtin.meta: end_host
-      when: _slave_query.query_result[0][0]['sro'] ==  1
+      when: _slave_query.stdout | int ==  1
 
     - name: Verify cluster master failover
       ansible.builtin.assert:
@@ -61,27 +61,21 @@
 - name: Reset cluster root password
   ansible.builtin.import_playbook: pokerops.mysql.install
   vars:
-    mysql_root_password: failover
+    mysql_root_password: supersecret
 
 
 - name: Verify cluster root password change
   hosts: mysql
   tasks:
-    - name: Query cluster status with stored credentials
+    - name: Query MySQL cluster status with stored credentials
       ansible.builtin.command:
-        cmd: mysql -h '127.0.0.1' -e 'SELECT @@global.super_read_only AS sro'
+        cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
+      vars:
+        _mysql_cmd: 'SELECT @@global.super_read_only AS sro'
       register: _slave_cli_query
-      retries: 3
-      delay: 30
-      until: _slave_cli_query is succeeded
-      become: true
 
-    - name: Query cluster status with explicit credentials
+    - name: Query MySQL cluster status with explicit credentials
       community.mysql.mysql_query:
         query: SELECT @@global.super_read_only AS sro
         login_user: root
-        login_password: failover
-      register: _slave_ansible_query
-      retries: 3
-      delay: 30
-      until: _slave_ansible_query is succeeded
+        login_password: supersecret
