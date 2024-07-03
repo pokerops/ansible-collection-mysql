@@ -160,7 +160,7 @@
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
       vars:
-        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@localhost"
+        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
         _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri }}")'
         _mysqlsh_options: "--javascript --save-passwords=always --quiet-start=2"
       no_log: "{{ mysql_nolog | default(True) }}"
@@ -168,14 +168,15 @@
 
     - name: Store MySQL cluster member credentials
       ansible.builtin.expect:
-        command: "mysqlsh {{ _mysqlsh_options }} --execute '{{ _mysqlsh_command }}'"
+        command: "mysqlsh {{ _mysqlsh_options }} --execute '{{ _mysqlsh_command }}' --uri '{{ _mysqlsh_uri_local }}'"
         responses:
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
       vars:
-        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@{{ item }}"
-        _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri }}")'
+        _mysqlsh_uri_local: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
+        _mysqlsh_uri_remote: "{{ mysql_clusteradmin_username }}@{{ item }}"
+        _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri_remote }}")'
         _mysqlsh_options: "--javascript --password --save-passwords=always --quiet-start=2"
       loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
