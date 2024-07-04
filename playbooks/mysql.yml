@@ -154,7 +154,7 @@
 
     - name: Store MySQL cluster member credentials
       ansible.builtin.expect:
-        command: >
+        command: >-
           mysqlsh --javascript --password --save-passwords=always --quiet-start=2
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
