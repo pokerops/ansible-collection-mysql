@@ -8,10 +8,11 @@ mysql_clusteradmin_username: clusteradmin
 mysql_server_package: "mysql-server"
 mysql_client_package: "mysql-client"
 mysql_shell_package: "mysql-shell"
-mysql_hostgroups:
+mysql_cluster_hostgroups:
   - _mysql_master
   - _mysql_slave
   - _mysql_alien
 
 # Overridable parameters
 _mysql_config_hostnames: "{{ mysql_config_hostnames | default(True) }}"
+_mysql_command_timeout: "{{ mysql_command_timeout | default(30) }}"

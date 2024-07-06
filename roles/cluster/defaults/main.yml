@@ -1,5 +1,5 @@
 ---
-mysql_secure: true
+mysql_manage_security: true
 mysql_manage_config: true
 mysql_config_include_files:
   - src: ansible.cnf

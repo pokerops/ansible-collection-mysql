@@ -2,22 +2,26 @@
 - name: Verify role preconditions
   ansible.builtin.assert:
     that:
-      - mysql_packages is defined
+      - mysql_cluster_packages is defined
       - mysql_root_password is defined
 
 - name: Debug package targets
   ansible.builtin.debug:
-    var: mysql_packages
+    var: mysql_cluster_packages
 
 - name: Set install facts
   ansible.builtin.set_fact:
-    mysql_root_password_update: true
     mysql_install_packages: false
     mysql_config_include_files:
       - src: ansible.cnf
         force: yes
       - src: cluster.cnf
         force: yes
+
+- name: Set root password update flag
+  ansible.builtin.set_fact:
+    mysql_root_password_update: true
+  when: mysql_root_password_update is not defined
 
 - name: Query installed packages
   ansible.builtin.package_facts:
@@ -28,7 +32,7 @@
     name: "{{ item }}"
     selection: install
   when: item in packages
-  loop: "{{ mysql_packages | map('split', '=') | map('first') }}"
+  loop: "{{ mysql_cluster_packages | map('split', '=') | map('first') }}"
   changed_when: false
 
 - name: Include MySQL variables
@@ -40,21 +44,16 @@
   ansible.builtin.include_role:
     name: pokerops.mysql.mysql
     tasks_from: "setup-{{ ansible_os_family }}"
+  vars:
+    mysql_packages: "{{ mysql_cluster_packages }}"
 
 - name: Configure MySQL installation
   ansible.builtin.include_role:
     name: pokerops.mysql.mysql
     tasks_from: "configure"
 
-- name: Query cluster status
-  community.mysql.mysql_query:
-    query: SELECT @@global.super_read_only AS sro
-    login_user: "{{ mysql_root_username }}"
-    login_password: "{{ mysql_root_password }}"
-  register: _slave_query
-
 - name: Manage MySQL deployment
-  when: _slave_query.query_result[0][0]['sro'] ==  0
+  when: mysql_manage_security | bool
   block:
     - name: Secure MySQL installation
       ansible.builtin.include_role:
@@ -74,5 +73,5 @@
   ansible.builtin.dpkg_selections:
     name: "{{ item }}"
     selection: hold
-  loop: "{{ mysql_packages | map('split', '=') | map('first') }}"
+  loop: "{{ mysql_cluster_packages | map('split', '=') | map('first') }}"
   changed_when: false

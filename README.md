@@ -7,7 +7,6 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 
 ## ToDo
 
-* Add cluster failover and failback test scenario
 * Add database and user management to install scenario
 * Add cluster backup and restore scripts and test scenario
 * Add cluster scale-up / scale-down test scenarios 
@@ -19,9 +18,9 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 
 ## Collection hostgroups
 
-| Hostgroup   | Default | Description      |
-|:------------|--------:|:-----------------|
-| mysql_group | 'mysql' | MySQL DBMS hosts |
+| Hostgroup           |         Default | Description        |
+|:--------------------|----------------:|:-------------------|
+| mysql_cluster_group | 'mysql_cluster' | MySQL DBMS hosts   |
 
 ## Collection variables
 
@@ -33,7 +32,7 @@ The following is the list of parameters intended for end-user customization:
 | mysql_root_password         |     N/A | MySQL root password                               | true     |
 | mysql_clusteradmin_password |     N/A | MySQL clusteradmin password                       | true     |
 | mysql_release               |     8.0 | Target PostgreSQL release in 'major.minor' format | false    |
-| mysql_packages              |     N/A | Target PostgreSQL packages                        | false    |
+| mysql_cluster_packages      |     N/A | Target PostgreSQL packages                        | false    |
 | mysql_config_hostnames      |    true | Toggle flag for /etc/hosts record configuration   | false    |
 | mysql_backup_dir            | /backup | Destination directory for mysql backups           | false    |
 | mysql_config_overrides      |     N/A | Configuration override fragment for MySQL daemon  | false    |

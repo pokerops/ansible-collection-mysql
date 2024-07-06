@@ -55,8 +55,8 @@
 
     - name: Set MySQL package facts for cluster members
       ansible.builtin.set_fact:
-        mysql_packages: "{{ mysql_master_packages }}"
-      loop: "{{ groups[mysql_group | default('mysql')] }}"
+        mysql_cluster_packages: "{{ mysql_master_packages }}"
+      loop: "{{ groups[mysql_cluster_group | default('mysql_cluster')] }}"
       delegate_to: "{{ item }}"
       delegate_facts: true
 
@@ -70,6 +70,8 @@
     - name: Deploy MySQL service
       ansible.builtin.include_role:
         name: pokerops.mysql.cluster
+      vars:
+        mysql_manage_security: true
 
 
 - name: Deploy MySQL packages on slave nodes
@@ -81,6 +83,9 @@
     - name: Deploy MySQL service
       ansible.builtin.include_role:
         name: pokerops.mysql.cluster
+      vars:
+        mysql_root_password_update: false
+        mysql_manage_security: false
 
 
 - name: Deploy MySQL packages on master nodes
@@ -92,18 +97,40 @@
     - name: Deploy MySQL service
       ansible.builtin.include_role:
         name: pokerops.mysql.cluster
+      vars:
+        mysql_manage_security: true
+
+    - name: Slurp my.cnf for root user
+      ansible.builtin.slurp:
+        path: "{{ mysql_root_home }}/.my.cnf"
+      register: _mysql_mycnf_slurp
+
+    - name: Set my.cnf facts
+      ansible.builtin.set_fact:
+        mysql_config_mycnf: "{{ _mysql_mycnf_slurp.content | ansible.builtin.b64decode }}"
+      loop: "{{ groups[mysql_cluster_group | default('mysql_cluster')] }}"
+      delegate_to: "{{ item }}"
+      delegate_facts: true
 
 
-- name: Store MySQL cluster credentials
+- name: Distribute MySQL my.cnf to slave nodes
+  hosts: "_mysql_slave"
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Write my.cnf configuration
+      ansible.builtin.copy:
+        dest: "{{ mysql_root_home }}/.my.cnf"
+        content: "{{ mysql_config_mycnf }}"
+        mode: "u=rw,go="
+
+
+- name: Configure MySQL shell
   hosts: "_mysql_master:_mysql_slave:_mysql_alien"
   vars_files:
     - vars.yml
   tasks:
-    - name: Clean MySQL shell credentials
-      ansible.builtin.file:
-        path: "~/.mylogin.cnf"
-        state: absent
-
     - name: Create user config directory for MySQL shell
       ansible.builtin.file:
         path: "{{ mysqlsh_configdir }}"
@@ -120,43 +147,46 @@
           symbols: {}
           segments: []
 
-    - name: Store MySQL cluster local credentials
+    - name: Store MySQL local cluster member credentials
       ansible.builtin.expect:
-        command: "mysqlsh {{ _mysqlsh_options }} --execute '{{ _mysqlsh_command }}'"
+        command: >-
+          mysqlsh --javascript --password --save-passwords=always --quiet-start=2
+            --host {{ item }}
+            --user {{ mysql_clusteradmin_username }}
+            --password
+            --save-passwords=always
         responses:
-          "^> $": "\\q"
+          ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
-      vars:
-        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@localhost"
-        _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri }}")'
-        _mysqlsh_options: "--javascript --save-passwords=always --quiet-start=2"
+      loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
 
-    - name: Store MySQL cluster member credentials
+    - name: Store MySQL remote cluster member credentials
       ansible.builtin.expect:
-        command: "mysqlsh {{ _mysqlsh_options }} --execute '{{ _mysqlsh_command }}'"
+        command: >-
+          mysqlsh --javascript --password --save-passwords=always --quiet-start=2
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --password
+            --save-passwords=always
+            --execute 'shell.connect("{{ mysql_clusteradmin_username }}@{{ item }}")'
         responses:
-          "^> $": "\\q"
+          ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
-      vars:
-        _mysqlsh_uri: "{{ mysql_clusteradmin_username }}@{{ item }}"
-        _mysqlsh_command: 'shell.connect("{{ _mysqlsh_uri }}")'
-        _mysqlsh_options: "--javascript --save-passwords=always --quiet-start=2"
-      loop: "{{ mysql_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
+      loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
 
 
-- name: Configure MySQL cluster
+- name: Configure InnoDB cluster
   hosts: "_mysql_master"
-  any_errors_fatal: true
   vars_files:
     - vars.yml
   tasks:
-    - name: Query cluster membership
+    - name: Query InnoDB cluster membership
       community.mysql.mysql_query:
         query: "SELECT member_host FROM performance_schema.replication_group_members"
         login_user: "{{ mysql_root_username | default('root') }}"
@@ -164,22 +194,25 @@
       ignore_errors: true
       register: _member_query
 
-    - name: Set cluster facts
+    - name: Set InnoDB cluster facts
       ansible.builtin.set_fact:
-        _mysql_cluster_targets: "{{ _mysql_groups | map('extract', groups) | flatten | unique }}"
+        _mysql_cluster_targets: "{{ _mysql_cluster_groups | map('extract', groups) | flatten | unique }}"
         _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
       vars:
-        _mysql_groups: "{{ mysql_hostgroups | intersect(groups.keys()) }}"
+        _mysql_cluster_groups: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) }}"
 
     - name: Initialize InnoDB cluster
       when: _mysql_cluster_members | length == 0
       block:
         - name: Verify cluster instance readiness
           ansible.builtin.command:
-            cmd: "mysqlsh --javascript --uri {{ _mysql_uri }} --execute '{{ _mysql_cmd }}'"
+            cmd: >-
+              mysqlsh --javascript
+                --host {{ item }}
+                --user {{ mysql_clusteradmin_username }}
+                --save-passwords=always
+                --execute 'dba.checkInstanceConfiguration()'
           vars:
-            _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_cmd: "'dba.checkInstanceConfiguration()'"
             _mysql_msg: "Instance configuration is compatible with InnoDB cluster"
           register: _mysql_check_instance
           failed_when: _mysql_check_instance.stderr is not search(_mysql_msg)
@@ -187,26 +220,30 @@
 
         - name: Bootstrap InnoDB cluster
           ansible.builtin.command:
-            cmd: "mysqlsh --javascript --uri {{ _mysql_uri }} --execute '{{ _mysql_cmd }}'"
+            cmd: >-
+              mysqlsh --javascript
+                --host {{ inventory_hostname }}
+                --user {{ mysql_clusteradmin_username }}
+                --save-passwords=always
+                --execute 'dba.createCluster("{{ mysql_cluster_name }}")'
           vars:
-            _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
-            _mysql_cmd: 'dba.createCluster("{{ mysql_cluster_name }}")'
-            _mysql_output: "{{ _mysql_cluster_bootstrap.stderr }}"
             _mysql_msg: "Cluster successfully created"
           register: _mysql_cluster_bootstrap
-          failed_when: _mysql_output is not search(_mysql_msg)
+          failed_when: _mysql_cluster_bootstrap.stderr is not search(_mysql_msg)
 
         - name: Add InnoDB cluster instances
           ansible.builtin.command:
-            cmd: "mysqlsh --javascript --uri {{ _mysql_uri }} --cluster --execute '{{ _mysql_cmd }}'"
+            cmd: >-
+              mysqlsh --javascript --cluster
+                --host {{ inventory_hostname }}
+                --user {{ mysql_clusteradmin_username }}
+                --save-passwords=always
+                --execute 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
           vars:
-            _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_cmd: 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
-            _mysql_out: "{{ _mysql_cluster_join.stderr }}"
             _mysql_msg: "The instance '{{ item }}:3306' was successfully added to the cluster"
           register: _mysql_cluster_join
-          failed_when: _mysql_out is not search(_mysql_msg)
+          failed_when: _mysql_cluster_join.stderr is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_targets | difference([inventory_hostname]) }}"
 
     - name: Manage InnoDB cluster state
@@ -227,28 +264,32 @@
 
         - name: Add InnoDB cluster members
           ansible.builtin.command:
-            cmd: "mysqlsh --javascript --uri {{ _mysql_uri }} --cluster --execute '{{ _mysql_cmd }}'"
+            cmd: >-
+              mysqlsh --javascript --cluster
+                --host {{ inventory_hostname }}
+                --user {{ mysql_clusteradmin_username }}
+                --save-passwords=always
+                --execute 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
           vars:
-            _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_cmd: 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
-            _mysql_out: "{{ _mysql_cluster_join.stderr }}"
             _mysql_msg: "The instance '{{ item }}:3306' was successfully added to the cluster"
           register: _mysql_cluster_join
-          failed_when: _mysql_out is not search(_mysql_msg)
+          failed_when: _mysql_cluster_join.stderr is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_member_add }}"
 
         - name: Remove InnoDB cluster members
           ansible.builtin.command:
-            cmd: "mysqlsh --javascript --uri {{ _mysql_uri }} --cluster --execute '{{ _mysql_cmd }}'"
+            cmd: >-
+              mysqlsh --javascript --cluster
+                --host {{ inventory_hostname }}
+                --user {{ mysql_clusteradmin_username }}
+                --save-passwords=always
+                --execute 'cluster.removeInstance("{{ _mysql_instance }}")'
           vars:
-            _mysql_uri: "{{ mysql_clusteradmin_username }}@{{ inventory_hostname }}"
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_cmd: 'cluster.removeInstance("{{ _mysql_instance }}")'
-            _mysql_out: "{{ _mysql_cluster_del.stderr }}"
             _mysql_msg: "The instance '{{ item }}:3306' was successfully removed from the cluster"
           register: _mysql_cluster_del
-          failed_when: _mysql_out is not search(_mysql_msg)
+          failed_when: _mysql_cluster_del.stderr is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_member_del }}"
 
     - name: Manage InnoDB cluster DBs and users
