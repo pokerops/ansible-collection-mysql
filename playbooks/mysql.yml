@@ -126,16 +126,11 @@
         mode: "u=rw,go="
 
 
-- name: Store MySQL cluster credentials
+- name: Configure MySQL shell
   hosts: "_mysql_master:_mysql_slave:_mysql_alien"
   vars_files:
     - vars.yml
   tasks:
-    - name: Clean MySQL shell credentials
-      ansible.builtin.file:
-        path: "~/.mylogin.cnf"
-        state: absent
-
     - name: Create user config directory for MySQL shell
       ansible.builtin.file:
         path: "{{ mysqlsh_configdir }}"
@@ -152,7 +147,23 @@
           symbols: {}
           segments: []
 
-    - name: Store MySQL cluster member credentials
+    - name: Store MySQL local cluster member credentials
+      ansible.builtin.expect:
+        command: >-
+          mysqlsh --javascript --password --save-passwords=always --quiet-start=2
+            --host {{ item }}
+            --user {{ mysql_clusteradmin_username }}
+            --password
+            --save-passwords=always
+        responses:
+          ".*> $": "\\q"
+          ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
+        timeout: 3
+      loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
+      no_log: "{{ mysql_nolog | default(True) }}"
+      register: _mysqlsh_node_register
+
+    - name: Store MySQL remote cluster member credentials
       ansible.builtin.expect:
         command: >-
           mysqlsh --javascript --password --save-passwords=always --quiet-start=2
@@ -172,7 +183,6 @@
 
 - name: Configure InnoDB cluster
   hosts: "_mysql_master"
-  any_errors_fatal: true
   vars_files:
     - vars.yml
   tasks:
@@ -196,10 +206,11 @@
       block:
         - name: Verify cluster instance readiness
           ansible.builtin.command:
-            cmd: >
+            cmd: >-
               mysqlsh --javascript
                 --host {{ item }}
                 --user {{ mysql_clusteradmin_username }}
+                --save-passwords=always
                 --execute 'dba.checkInstanceConfiguration()'
           vars:
             _mysql_msg: "Instance configuration is compatible with InnoDB cluster"
@@ -209,10 +220,11 @@
 
         - name: Bootstrap InnoDB cluster
           ansible.builtin.command:
-            cmd: >
+            cmd: >-
               mysqlsh --javascript
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
+                --save-passwords=always
                 --execute 'dba.createCluster("{{ mysql_cluster_name }}")'
           vars:
             _mysql_msg: "Cluster successfully created"
@@ -221,10 +233,11 @@
 
         - name: Add InnoDB cluster instances
           ansible.builtin.command:
-            cmd: >
+            cmd: >-
               mysqlsh --javascript --cluster
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
+                --save-passwords=always
                 --execute 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
           vars:
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
@@ -251,10 +264,11 @@
 
         - name: Add InnoDB cluster members
           ansible.builtin.command:
-            cmd: >
+            cmd: >-
               mysqlsh --javascript --cluster
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
+                --save-passwords=always
                 --execute 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
           vars:
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
@@ -265,10 +279,11 @@
 
         - name: Remove InnoDB cluster members
           ansible.builtin.command:
-            cmd: >
+            cmd: >-
               mysqlsh --javascript --cluster
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
+                --save-passwords=always
                 --execute 'cluster.removeInstance("{{ _mysql_instance }}")'
           vars:
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"

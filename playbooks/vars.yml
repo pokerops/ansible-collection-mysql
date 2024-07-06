@@ -15,3 +15,4 @@ mysql_cluster_hostgroups:
 
 # Overridable parameters
 _mysql_config_hostnames: "{{ mysql_config_hostnames | default(True) }}"
+_mysql_command_timeout: "{{ mysql_command_timeout | default(30) }}"

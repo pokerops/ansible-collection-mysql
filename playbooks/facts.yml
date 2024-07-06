@@ -15,7 +15,7 @@
         - mysql_daemon in services
         - services[mysql_daemon].state != 'running'
 
-    - name: Query cluster membership
+    - name: Query node cluster membership
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e \"{{ _mysql_cmd }}\""
       vars:
@@ -24,13 +24,21 @@
       ignore_errors: true
       register: _member_query
 
-    - name: Query MySQL cluster status
+    - name: Debug node cluster membership
+      ansible.builtin.debug:
+        msg: "{{ _member_query.stdout }}"
+
+    - name: Query node cluster status
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:
         _mysql_cmd: 'SELECT @@global.super_read_only AS sro'
       ignore_errors: true
       register: _slave_query
+
+    - name: Debug node cluster status
+      ansible.builtin.debug:
+        msg: "{{ _slave_query.stdout }}"
 
     - name: Set cluster membership facts
       ansible.builtin.set_fact:
@@ -95,3 +103,7 @@
         _master: "{{ inventory_hostname in _hosts_masters }}"
         _slave: "{{ inventory_hostname  in _hosts_slaves }}"
       changed_when: false
+
+    - name: Verify cluster state
+      ansible.builtin.assert:
+        that:  groups['_mysql_master'] | length == 1
