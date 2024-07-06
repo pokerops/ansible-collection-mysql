@@ -106,4 +106,4 @@
 
     - name: Verify cluster state
       ansible.builtin.assert:
-        that:  groups['_mysql_master'] | length == 1
+        that: groups['_mysql_master'] | length == 1
