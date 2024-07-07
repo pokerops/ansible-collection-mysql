@@ -1,7 +1,6 @@
 ---
 - name: Verify MySQL services
   hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
-  become: true
   tags: always
   vars_files:
     - ../../playbooks/vars.yml
@@ -23,7 +22,6 @@
       ansible.builtin.command:
         cmd: >
           mysqlsh --cluster --javascript --quiet-start=2
-            --password={{ mysql_clusteradmin_password }}
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
             --execute 'print(cluster.status())'
