@@ -49,8 +49,8 @@ provisioner:
           libvirt_platforms: "{{ molecule_yml.platforms }}"
           mysql_nolog: false
           mysql_root_password: molecule
-          mysql_clusteradmin_password: molecule
-          mysql_cluster_name: molecule
+          mysql_clusteradmin_password: admin
+          mysql_cluster_name: failover
 verifier:
   name: ansible
 scenario:

@@ -153,8 +153,6 @@
           mysqlsh --javascript --password --save-passwords=always --quiet-start=2
             --host {{ item }}
             --user {{ mysql_clusteradmin_username }}
-            --password
-            --save-passwords=always
         responses:
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
@@ -169,8 +167,6 @@
           mysqlsh --javascript --password --save-passwords=always --quiet-start=2
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
-            --password
-            --save-passwords=always
             --execute 'shell.connect("{{ mysql_clusteradmin_username }}@{{ item }}")'
         responses:
           ".*> $": "\\q"
@@ -210,7 +206,6 @@
               mysqlsh --javascript
                 --host {{ item }}
                 --user {{ mysql_clusteradmin_username }}
-                --save-passwords=always
                 --execute 'dba.checkInstanceConfiguration()'
           vars:
             _mysql_msg: "Instance configuration is compatible with InnoDB cluster"
@@ -224,7 +219,6 @@
               mysqlsh --javascript
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
-                --save-passwords=always
                 --execute 'dba.createCluster("{{ mysql_cluster_name }}")'
           vars:
             _mysql_msg: "Cluster successfully created"
@@ -237,7 +231,6 @@
               mysqlsh --javascript --cluster
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
-                --save-passwords=always
                 --execute 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
           vars:
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
@@ -268,7 +261,6 @@
               mysqlsh --javascript --cluster
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
-                --save-passwords=always
                 --execute 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
           vars:
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
@@ -283,7 +275,6 @@
               mysqlsh --javascript --cluster
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
-                --save-passwords=always
                 --execute 'cluster.removeInstance("{{ _mysql_instance }}")'
           vars:
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"

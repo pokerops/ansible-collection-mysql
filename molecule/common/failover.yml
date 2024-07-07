@@ -64,9 +64,10 @@
   ansible.builtin.import_playbook: pokerops.mysql.install
   vars:
     mysql_root_password: supersecret
+    mysql_clusteradmin_password: notsosecret
 
 
-- name: Verify cluster root password change
+- name: Verify cluster password changes
   hosts: mysql_cluster
   tasks:
     - name: Query MySQL cluster status with stored credentials
@@ -82,3 +83,14 @@
         query: SELECT @@global.super_read_only AS sro
         login_user: root
         login_password: supersecret
+
+    - name: Connect to MySQL shell with explicit credentials
+      ansible.builtin.expect:
+        command: >-
+          mysqlsh --javascript --password --save-passwords=always --quiet-start=2
+            --host {{ inventory_hostname }}
+            --user clusteradmin
+        responses:
+          ".*> $": "\\q"
+          ".*Please provide the password for.*": "notsosecret"
+        timeout: 3
