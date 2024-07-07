@@ -36,10 +36,12 @@ provisioner:
       allow_world_readable_tmpfiles: true
       callbacks_enabled: ansible.posix.profile_tasks
   playbooks:
+    create: ../common/create.yml
     prepare: ../common/prepare.yml
     converge: ../common/install.yml
     side_effect: ../common/install.yml
     verify: ../common/verify.yml
+    destroy: ../common/destroy.yml
   inventory:
     hosts:
       all:
