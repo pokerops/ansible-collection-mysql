@@ -7,14 +7,16 @@ on:
       - master
 
 jobs:
-  molecule:
-    name: molecule
+  libvirt:
+    name: libvirt
     runs-on: libvirt
     strategy:
       matrix:
         scenario:
           - install
           - failover
+          - scaleup
+          - scaledown
         image:
           - name: ubuntu2204
             command: /lib/systemd/systemd

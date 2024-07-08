@@ -1,0 +1,27 @@
+---
+- name: Import install playbook
+  ansible.builtin.import_playbook: pokerops.mysql.install
+  vars:
+    mysql_cluster_group: mysql_cluster_up
+
+
+- name: Query cluster state
+  hosts: _mysql_master
+  tasks:
+    - name: Query InnoDB cluster membership
+      community.mysql.mysql_query:
+        query: "SELECT member_host FROM performance_schema.replication_group_members"
+        login_user: "{{ mysql_root_username | default('root') }}"
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: true
+      register: _member_query
+
+    - name: Verify InnoDB cluster members
+      ansible.builtin.assert:
+        that:
+          - (groups['mysql_cluster'] | length) < (groups['mysql_cluster_up'] | length)
+          - (_mysql_cluster_members | length) == (groups['mysql_cluster_up'] | length)
+          - _mysql_cluster_members | difference(groups['mysql_cluster_up']) | length == 0
+          - groups['mysql_cluster_up'] | difference(_mysql_cluster_members) | length == 0
+      vars:
+        _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
