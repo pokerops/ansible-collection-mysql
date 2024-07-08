@@ -16,12 +16,24 @@
       ignore_errors: true
       register: _member_query
 
+    - name: Set InnoDB cluster facts
+      ansible.builtin.set_fact:
+        _mysql_cluster_initial: "{{ groups['mysql_cluster'] }}"
+        _mysql_cluster_scaledown: "{{ groups['mysql_cluster_up'] }}"
+        _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
+
+    - name: Debug InnoDB cluster facts
+      ansible.builtin.debug:
+        var: _mysql_cluster_members
+
+    - name: Debug InnoDB cluster targets
+      ansible.builtin.debug:
+        var: _mysql_cluster_scaledown
+
     - name: Verify InnoDB cluster members
       ansible.builtin.assert:
         that:
-          - (groups['mysql_cluster'] | length) > (groups['mysql_cluster_down'] | length)
-          - (_mysql_cluster_members | length) == (groups['mysql_cluster_down'] | length)
-          - _mysql_cluster_members | difference(groups['mysql_cluster_down']) | length == 0
-          - groups['mysql_cluster_down'] | difference(_mysql_cluster_members) | length == 0
-      vars:
-        _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
+          - (_mysql_cluster_initial | length) > (_mysql_cluster_scaledown | length)
+          - (_mysql_cluster_members | length) == (_mysql_cluster_scaledown | length)
+          - _mysql_cluster_members | difference(_mysql_cluster_scaledown | length == 0
+          - _mysql_cluster_scaledown | difference(_mysql_cluster_members) | length == 0
