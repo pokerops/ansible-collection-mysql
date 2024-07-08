@@ -1,0 +1,53 @@
+---
+- name: Configure MySQL backups
+  hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Create MySQL backup dir
+      ansible.builtin.file:
+        dest: "{{ _mysql_backup_dir }}"
+        state: directory
+        mode: "u=rwx,g=rx,o="
+
+    - name: Install Percona repository
+      ansible.builtin.apt:
+        deb: "https://repo.percona.com/apt/percona-release_latest.{{ ansible_lsb.codename }}_all.deb"
+
+    - name: Configure Percona repository
+      command: percona-release enable-only tools release
+      changed_when: false
+      tags: ignore_ansible_lint
+
+    - name: Install percona xtrabackup
+      ansible.builtin.apt:
+        name:
+          - percona-xtrabackup-80
+          - qpress
+        update_cache: yes
+        state: latest
+
+    - name: Manage DB backup script
+      ansible.builtin.template:
+        src: backup.j2.sh
+        dest: "{{ _mysql_backup_bin }}"
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: Manage DB backup cronjob
+      ansible.builtin.cron:
+        name: mysql-db-backup
+        job: "{{ _mysql_backup_bin }} >/tmp/mysql-db-backup.log 2>&1"
+        minute: '00'
+        hour: '04'
+
+    - name: Create MySQL backup motd pointers
+      ansible.builtin.copy:
+        dest: /etc/update-motd.d/99-mysql
+        content: |
+          #!/usr/bin/env bash
+          echo run {{ _mysql_backup_bin | basename }} to manually force db backup creation
+          echo
+        mode: 0755
