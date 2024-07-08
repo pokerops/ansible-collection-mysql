@@ -7,9 +7,10 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 
 ## ToDo
 
+* Add database and user management to install scenario
+* Add cluster backup and restore scripts and test scenario
 * Add mysqlrouter playbook and test scenario
 * Add cluster failover deployment option and test scenario
-* Add database and user management to install scenario
 * Add Debian to test targets
 * Add support for RockyLinux / AlmaLinux
 * Split cluster and repo roles to separate repositories
