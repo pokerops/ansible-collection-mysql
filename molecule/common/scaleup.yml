@@ -37,3 +37,9 @@
           - (_mysql_cluster_members | length) == (_mysql_cluster_scaleup | length)
           - _mysql_cluster_members | difference(_mysql_cluster_scaleup) | length == 0
           - _mysql_cluster_scaleup | difference(_mysql_cluster_members) | length == 0
+
+
+- name: Import verification playbook
+  ansible.builtin.import_playbook: ./verify.yml
+  vars:
+    mysql_cluster_group: mysql_cluster_up

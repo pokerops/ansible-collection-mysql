@@ -29,6 +29,11 @@
       ansible.builtin.set_fact:
         _mysql_cluster_status: "{{ _mysql_cluster_status_query.stdout | from_json }}"
 
+    - name: Debug cluster status
+      ansible.builtin.debug:
+        var: _mysql_cluster_status
+      run_once: true
+
     - name: Verify MySQL cluster name
       ansible.builtin.assert:
         that: _mysql_cluster_status.clusterName == mysql_cluster_name
@@ -48,8 +53,3 @@
         that: _cluster_member_status | reject('equalto', 'ONLINE') | length == 0
       vars:
         _cluster_member_status: "{{ _mysql_cluster_status.defaultReplicaSet.topology.values() | map(attribute='status') }}"
-
-    - name: Debug cluster status
-      ansible.builtin.debug:
-        var: _mysql_cluster_status
-      run_once: true
