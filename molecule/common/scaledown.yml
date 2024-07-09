@@ -1,0 +1,45 @@
+---
+- name: Import install playbook
+  ansible.builtin.import_playbook: pokerops.mysql.install
+  vars:
+    mysql_cluster_group: mysql_cluster_down
+
+
+- name: Query cluster state
+  hosts: _mysql_master
+  tasks:
+    - name: Query InnoDB cluster membership
+      community.mysql.mysql_query:
+        query: "SELECT member_host FROM performance_schema.replication_group_members"
+        login_user: "{{ mysql_root_username | default('root') }}"
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: true
+      register: _member_query
+
+    - name: Set InnoDB cluster facts
+      ansible.builtin.set_fact:
+        _mysql_cluster_initial: "{{ groups['mysql_cluster'] }}"
+        _mysql_cluster_scaledown: "{{ groups['mysql_cluster_up'] }}"
+        _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
+
+    - name: Debug InnoDB cluster facts
+      ansible.builtin.debug:
+        var: _mysql_cluster_members
+
+    - name: Debug InnoDB cluster targets
+      ansible.builtin.debug:
+        var: _mysql_cluster_scaledown
+
+    - name: Verify InnoDB cluster members
+      ansible.builtin.assert:
+        that:
+          - (_mysql_cluster_initial | length) > (_mysql_cluster_scaledown | length)
+          - (_mysql_cluster_members | length) == (_mysql_cluster_scaledown | length)
+          - _mysql_cluster_members | difference(_mysql_cluster_scaledown) | length == 0
+          - _mysql_cluster_scaledown | difference(_mysql_cluster_members) | length == 0
+
+
+- name: Import verification playbook
+  ansible.builtin.import_playbook: ./verify.yml
+  vars:
+    mysql_cluster_group: mysql_cluster_up

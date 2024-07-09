@@ -1,3 +1,5 @@
 ---
 - name: Import install playbook
   ansible.builtin.import_playbook: pokerops.mysql.install
+  vars:
+    mysql_cluster_group: mysql_cluster

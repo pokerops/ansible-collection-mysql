@@ -9,7 +9,6 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 
 * Add database and user management to install scenario
 * Add cluster backup and restore scripts and test scenario
-* Add cluster scale-up / scale-down test scenarios 
 * Add mysqlrouter playbook and test scenario
 * Add cluster failover deployment option and test scenario
 * Add Debian to test targets

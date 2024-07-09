@@ -1,9 +1,8 @@
 ---
 - name: Verify MySQL services
   hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
-  tags: always
-  vars_files:
-    - ../../playbooks/vars.yml
+  vars:
+    mysql_daemon: mysql
   tasks:
     - name: Gather service facts
       ansible.builtin.service_facts:
@@ -14,16 +13,14 @@
 
     - name: Verify MySQL daemon
       ansible.builtin.assert:
-        that: _mysql_service_state == 'running'
-      vars:
-        _mysql_service_state: "{{ services[mysql_daemon].state }}"
+        that: services[mysql_daemon].state == 'running'
 
     - name: Query MySQL cluster status
       ansible.builtin.command:
         cmd: >
           mysqlsh --cluster --javascript --quiet-start=2
             --host {{ inventory_hostname }}
-            --user {{ mysql_clusteradmin_username }}
+            --user clusteradmin
             --execute 'print(cluster.status())'
       register: _mysql_cluster_status_query
       changed_when: false
@@ -31,6 +28,11 @@
     - name: Set MySQL cluser facts
       ansible.builtin.set_fact:
         _mysql_cluster_status: "{{ _mysql_cluster_status_query.stdout | from_json }}"
+
+    - name: Debug cluster status
+      ansible.builtin.debug:
+        var: _mysql_cluster_status
+      run_once: true
 
     - name: Verify MySQL cluster name
       ansible.builtin.assert:
@@ -51,8 +53,3 @@
         that: _cluster_member_status | reject('equalto', 'ONLINE') | length == 0
       vars:
         _cluster_member_status: "{{ _mysql_cluster_status.defaultReplicaSet.topology.values() | map(attribute='status') }}"
-
-    - name: Debug cluster status
-      ansible.builtin.debug:
-        var: _mysql_cluster_status
-      run_once: true
