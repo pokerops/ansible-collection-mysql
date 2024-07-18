@@ -10,21 +10,21 @@ platforms:
   - name: mysql-${MOLECULE_SCENARIO_NAME}-01
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
-    mem: 4
+    mem: 8
     size: 30G
     groups:
       - mysql_cluster
   - name: mysql-${MOLECULE_SCENARIO_NAME}-02
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
-    mem: 4
+    mem: 8
     size: 30G
     groups:
       - mysql_cluster
   - name: mysql-${MOLECULE_SCENARIO_NAME}-03
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
-    mem: 4
+    mem: 8
     size: 30G
     groups:
       - mysql_cluster
@@ -39,9 +39,8 @@ provisioner:
     create: ../common/create.yml
     prepare: ../common/prepare.yml
     converge: ../common/install.yml
-    side_effect: ../common/failover.yml
-    verify: ../common/verify.yml
     destroy: ../common/destroy.yml
+    verify: ../common/verify.yml
   inventory:
     hosts:
       all:
@@ -50,10 +49,12 @@ provisioner:
           mysql_nolog: false
           mysql_root_password: molecule
           mysql_clusteradmin_password: admin
-          mysql_cluster_name: failover
+          mysql_cluster_name: molecule
 verifier:
   name: ansible
 scenario:
+  prepare_sequence:
+    - prepare
   converge_sequence:
     - converge
   destroy_sequence:

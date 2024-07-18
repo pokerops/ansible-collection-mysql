@@ -33,8 +33,6 @@
             - name: Query target MySQL server package version
               ansible.builtin.shell:
                 cmd: "apt-cache madison {{ mysql_server_package }} | awk '{ print $3 }' | grep '^{{ _mysql_release }}' | sort -r | head -1"
-              vars:
-                _mysql_release: "{{ mysql_release | default('8.0') }}"
               changed_when: false
               register: mysql_server_package_query
 
@@ -133,13 +131,13 @@
   tasks:
     - name: Create user config directory for MySQL shell
       ansible.builtin.file:
-        path: "{{ mysqlsh_configdir }}"
+        path: "{{ mysql_shell_configdir }}"
         state: directory
         mode: "u=rwx,go="
 
     - name: Configure MySQL shell theme
       ansible.builtin.copy:
-        dest: "{{ mysqlsh_configdir }}/prompt.json"
+        dest: "{{ mysql_shell_configdir }}/prompt.json"
         content: "{{ mysqlsh_prompt | to_nice_json(indent=2) }}"
         mode: "u=rw,go="
       vars:
