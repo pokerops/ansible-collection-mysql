@@ -1,0 +1,21 @@
+---
+- name: Run standard verification checks
+  ansible.builtin.import_playbook: ../common/verify.yml
+
+
+- name: Verify mysqldump restore
+  hosts: all
+  vars:
+    mysql_server_daemon: mysql
+  tasks:
+    - name: List databases
+      community.mysql.mysql_query:
+        query: "SHOW databases"
+        login_user: "{{ mysql_root_username | default('root') }}"
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: true
+      register: _member_query
+
+    - name: Verify sakila DB
+      ansible.builtin.assert:
+        that: _member_query.query_result[0] | selectattr('Database', 'equalto', 'sakila') | length == 1

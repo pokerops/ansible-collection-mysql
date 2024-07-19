@@ -25,7 +25,7 @@
       register: _mysql_cluster_status_query
       changed_when: false
 
-    - name: Set MySQL cluser facts
+    - name: Set MySQL cluster facts
       ansible.builtin.set_fact:
         _mysql_cluster_status: "{{ _mysql_cluster_status_query.stdout | from_json }}"
 

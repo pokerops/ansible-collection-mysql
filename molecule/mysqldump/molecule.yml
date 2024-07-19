@@ -40,7 +40,6 @@ provisioner:
     prepare: ../common/prepare.yml
     converge: ../common/install.yml
     destroy: ../common/destroy.yml
-    verify: ../common/verify.yml
   inventory:
     hosts:
       all:

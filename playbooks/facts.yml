@@ -50,7 +50,7 @@
         _is_installed: "{{ _service in services }}"
         _is_alien: "{{ (not _is_installed) or (_member_query is failed) or (_member_query.stdout_lines == 0) }}"
         _is_member: "{{ not _is_alien }}"
-        _is_slave: "{{ _is_member and (_slave_query.stdout | int == 1) }}"
+        _is_slave: "{{ _is_member and (_slave_query.stdout | int > 0) }}"
         _is_master: "{{ _is_member and not _is_slave }}"
 
     - name: Group cluster members
@@ -75,6 +75,7 @@
         _has_master: "{{ _masters | length > 0  }}"
         _has_slaves: "{{ _slaves | length > 0 }}"
         _slaves_have_master: "{{ not _has_slaves or _has_master }}"
+      when: mysql_cluster_check | default(True)
 
     - name: Set hostgroup facts
       ansible.builtin.set_fact:
@@ -105,3 +106,4 @@
     - name: Verify cluster state
       ansible.builtin.assert:
         that: groups['_mysql_master'] | length == 1
+      when: mysql_cluster_check | default(True)

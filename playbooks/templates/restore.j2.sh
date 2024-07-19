@@ -39,7 +39,7 @@ function restore_xbstream {
 function restore_mysqldump {
     log "Restoring MySQL dump from $backup_file"
     backup_file="$1"
-    mysql -u root < "$backup_file"
+    gunzip  "$backup_file" | mysql -u root
 }
 
 function main {
