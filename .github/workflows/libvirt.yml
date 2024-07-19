@@ -17,6 +17,8 @@ jobs:
           - failover
           - scaleup
           - scaledown
+          - xtrabackup
+          - mysqldump
         image:
           - name: ubuntu2204
             command: /lib/systemd/systemd

@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+
+set -euo pipefail
+
+mysql_data_dir="{{ mysql_server_datadir }}"
+
+function log {
+    message="$1"
+    echo "$(date '+%Y-%m-%dT%H:%M:%S.%N%:z' | sed 's/\([0-9]\{6\}\)[0-9]*/\1/') 0 [Note] [mysql-restore] $message"
+}
+
+function parse_args {
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: $0 <backup_file>"
+        exit 1
+    else
+        backup_file="$1"
+    fi
+}
+
+function restore_xbstream {
+    log "Restoring Xtrabackup from $backup_file"
+    backup_file="$1"
+    restore_dir=$(mktemp -d)
+    systemctl stop mysql
+    gid=$(stat -c %g "$mysql_data_dir")
+    uid=$(stat -c %u "$mysql_data_dir")
+    rm -rf "${mysql_data_dir:?}"/*
+    xbstream -x < "$backup_file" -C "$restore_dir"
+    xtrabackup --decompress --target-dir="$restore_dir" --remove-original
+    xtrabackup --prepare --target-dir="$restore_dir"
+    xtrabackup --copy-back --target-dir="$restore_dir"
+    chown -R "$uid":"$gid" "$mysql_data_dir"
+    systemctl start mysql
+    rm -rf "${restore_dir:?}"
+}
+
+function restore_mysqldump {
+    log "Restoring MySQL dump from $backup_file"
+    backup_file="$1"
+    zcat  "$backup_file" | mysql -u root
+}
+
+function main {
+    parse_args "$@"
+    if [[ ! -f "$backup_file" ]]; then
+        echo "Backup file not found: $backup_file"
+        exit 1
+    elif [[ "$backup_file" =~ .*.xbstream ]]; then
+        restore_xbstream "$backup_file"
+    elif [[ "$backup_file" =~ .*.sql.gz ]]; then
+        restore_mysqldump "$backup_file"
+    else
+        echo "Unknown backup file type: $backup_file"
+        exit 1
+    fi
+}
+
+main "$@"

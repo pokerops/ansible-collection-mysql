@@ -1,0 +1,28 @@
+---
+- name: Verify MySQL services
+  hosts: all
+  vars:
+    mysql_server_daemon: mysql
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Verify MySQL deployment
+      ansible.builtin.assert:
+        that: mysql_server_daemon in services
+
+    - name: Verify MySQL daemon
+      ansible.builtin.assert:
+        that: services[mysql_server_daemon].state == 'running'
+
+    - name: List databases
+      community.mysql.mysql_query:
+        query: "SHOW databases"
+        login_user: "{{ mysql_root_username | default('root') }}"
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: true
+      register: _member_query
+
+    - name: Verify sakila DB
+      ansible.builtin.assert:
+        that: _member_query.query_result[0] | selectattr('Database', 'equalto', 'sakila') | length == 1

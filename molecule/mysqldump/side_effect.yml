@@ -1,0 +1,155 @@
+---
+- name: Back up cluster nodes
+  hosts: all
+  become: true
+  tasks:
+    - name: Query MySQL cluster status
+      ansible.builtin.command:
+        cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
+      vars:
+        _mysql_cmd: 'SELECT @@global.super_read_only AS sro'
+      register: _slave_query
+
+    - name: Load sakila DB
+      when: _slave_query.stdout | int == 0
+      block:
+        - name: Create temporary directory
+          ansible.builtin.tempfile:
+            state: directory
+            prefix: sakila
+          register: mysql_tmpdir
+          changed_when: false
+
+        - name: Load sakila DB
+          vars:
+            sakila_bundle: "{{ mysql_tmpdir.path }}/sakila-db.tar.gz"
+          block:
+            - name: Download sakila tarball
+              ansible.builtin.get_url:
+                url: https://downloads.mysql.com/docs/sakila-db.tar.gz
+                dest: "{{ sakila_bundle }}"
+                http_agent: "curl/7.68.0"
+              changed_when: false
+
+            - name: Unarchive sakila tarball
+              ansible.builtin.unarchive:
+                src: "{{ sakila_bundle }}"
+                dest: "{{ mysql_tmpdir.path }}"
+                remote_src: true
+
+            - name: Drop sakila DB
+              community.mysql.mysql_db:
+                name: sakila
+                state: absent
+                login_user: root
+                login_password: "{{ mysql_root_password }}"
+
+            - name: Create sakila DB
+              community.mysql.mysql_db:
+                name: sakila
+                state: present
+                login_user: root
+                login_password: "{{ mysql_root_password }}"
+
+            - name: Manage sakila DB schema
+              community.mysql.mysql_db:
+                name: sakila
+                state: import
+                login_user: root
+                login_password: "{{ mysql_root_password }}"
+                target: "{{ mysql_tmpdir.path }}/sakila-db/sakila-schema.sql"
+
+            - name: Manage sakila DB data
+              community.mysql.mysql_db:
+                name: sakila
+                state: import
+                login_user: root
+                login_password: "{{ mysql_root_password }}"
+                target: "{{ mysql_tmpdir.path }}/sakila-db/sakila-data.sql"
+
+          always:
+            - name: Destroy tempdir
+              ansible.builtin.file:
+                dest: "{{ mysql_tmpdir.path }}/mysql.deb"
+                state: absent
+              changed_when: false
+
+    - name: Take backup on node
+      ansible.builtin.command:
+        cmd: /usr/local/bin/mysql-backup
+
+    - name: Failover DB cluster master
+      when: _slave_query.stdout | int == 0
+      block:
+        - name: Stop mysql service
+          ansible.builtin.service:
+            name: mysql
+            state: stopped
+
+        - name: Wait for cluster failover
+          ansible.builtin.pause:
+            seconds: 30
+
+        - name: Start mysql service
+          ansible.builtin.service:
+            name: mysql
+            state: started
+
+
+- name: Import facts playbook
+  ansible.builtin.import_playbook: pokerops.mysql.facts
+
+
+- name: Drop cluster data
+  hosts: _mysql_master
+  become: true
+  tasks:
+    - name: List databases
+      community.mysql.mysql_query:
+        query: "SHOW databases"
+        login_user: "{{ mysql_root_username | default('root') }}"
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: true
+      register: _member_query
+
+    - name: Verify sakila DB
+      ansible.builtin.assert:
+        that: _member_query.query_result[0] | selectattr('Database', 'equalto', 'sakila') | length == 1
+
+    - name: Drop sakila DB data
+      community.mysql.mysql_db:
+        name: sakila
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: List databases
+      community.mysql.mysql_query:
+        query: "SHOW databases"
+        login_user: "{{ mysql_root_username | default('root') }}"
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: true
+      register: _member_query
+
+    - name: Verify sakila DB
+      ansible.builtin.assert:
+        that: _member_query.query_result[0] | selectattr('Database', 'equalto', 'sakila') | length == 0
+
+
+- name: Restore mysqldump backup
+  hosts: _mysql_master
+  become: true
+  tasks:
+    - name: List xbstream backup files
+      ansible.builtin.find:
+        paths: "/backup/{{ inventory_hostname_short }}"
+        patterns: "*.sql.gz"
+      register: _backup_query
+
+    - name: Set backup target facts
+      ansible.builtin.set_fact:
+        backup_target: "{{ _backup_query.files | map(attribute='path') | sort | last }}"
+
+    - name: Restore cluster mysqldump backup
+      ansible.builtin.command:
+        cmd: "/usr/local/bin/mysql-restore {{ backup_target }}"

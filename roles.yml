@@ -6,3 +6,6 @@ roles:
   - name: mysql
     src: https://github.com/geerlingguy/ansible-role-mysql.git
     version: 4.3.4
+  - name: docker
+    src: https://github.com/nephelaiio/ansible-role-docker.git
+    version: 6.1.6

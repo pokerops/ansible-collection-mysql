@@ -1,18 +1,26 @@
 ---
 # Hardcoded values
-mysql_root_username: root
+mysql_root_username: "root"
 mysql_root_home: "~{{ mysql_root_username }}"
-mysqlsh_configdir: "~/.mysqlsh"
-mysql_daemon: mysql
-mysql_clusteradmin_username: clusteradmin
-mysql_server_package: "mysql-server"
-mysql_client_package: "mysql-client"
+mysql_clusteradmin_username: "clusteradmin"
+mysql_shell_configdir: "~/.mysqlsh"
 mysql_shell_package: "mysql-shell"
+mysql_server_daemon: "mysql"
+mysql_server_package: "mysql-server"
+mysql_server_datadir: "/var/lib/mysql"
+mysql_client_package: "mysql-client"
 mysql_cluster_hostgroups:
-  - _mysql_master
-  - _mysql_slave
-  - _mysql_alien
+  - "_mysql_master"
+  - "_mysql_slave"
+  - "_mysql_alien"
 
 # Overridable parameters
 _mysql_config_hostnames: "{{ mysql_config_hostnames | default(True) }}"
 _mysql_command_timeout: "{{ mysql_command_timeout | default(30) }}"
+_mysql_backup_dir: "{{ mysql_backup_dir | default('/backup') }}"
+_mysql_backup_bin: "{{ mysql_backup_bin | default('/usr/local/bin/mysql-backup') }}"
+_mysql_restore_bin: "{{ mysql_restore_bin | default('/usr/local/bin/mysql-restore') }}"
+_mysql_backup_cron_min: "{{ mysql_backup_cron_min | default('00') }}"
+_mysql_backup_cron_hour: "{{ mysql_backup_cron_hour | default('04') }}"
+_mysql_backup_cron_dow: "{{ mysql_backup_cron_hour | default('*') }}"
+_mysql_release: "{{ mysql_release | default('8.0') }}"

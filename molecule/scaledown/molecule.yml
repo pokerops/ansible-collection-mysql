@@ -10,7 +10,7 @@ platforms:
   - name: mysql-${MOLECULE_SCENARIO_NAME}-01
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
-    memory: 4
+    mem: 4
     size: 30G
     groups:
       - mysql_cluster
@@ -18,7 +18,7 @@ platforms:
   - name: mysql-${MOLECULE_SCENARIO_NAME}-02
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
-    memory: 4
+    mem: 4
     size: 30G
     groups:
       - mysql_cluster
@@ -26,7 +26,7 @@ platforms:
   - name: mysql-${MOLECULE_SCENARIO_NAME}-03
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
-    memory: 4
+    mem: 4
     size: 30G
     groups:
       - mysql_cluster
@@ -34,14 +34,14 @@ platforms:
   - name: mysql-${MOLECULE_SCENARIO_NAME}-04
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
-    memory: 4
+    mem: 4
     size: 30G
     groups:
       - mysql_cluster
   - name: mysql-${MOLECULE_SCENARIO_NAME}-05
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
-    memory: 4
+    mem: 4
     size: 30G
     groups:
       - mysql_cluster
