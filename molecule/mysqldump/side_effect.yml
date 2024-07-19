@@ -150,6 +150,6 @@
       ansible.builtin.set_fact:
         backup_target: "{{ _backup_query.files | map(attribute='path') | sort | last }}"
 
-    - name: Restore cluster xbstream backup
+    - name: Restore cluster mysqldump backup
       ansible.builtin.command:
         cmd: "/usr/local/bin/mysql-restore {{ backup_target }}"

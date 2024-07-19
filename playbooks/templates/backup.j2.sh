@@ -33,7 +33,7 @@ function backup_mysqldump {
     mkdir -p "$(dirname "$backup_file")"
     echo "$(date '+%Y-%m-%dT%H:%M:%S.%N%:z' | sed 's/\([0-9]\{6\}\)[0-9]*/\1/') 0 [Note] [mysql-backup] Taking logical backup (mysqldump) on master server"
     mysqldump \
-        --all-databases \
+        --all-databases --set-gtid-purged=OFF \
         --triggers --routines --events --quick --skip-lock-tables \
         --single-transaction | gzip > "$backup_file"
     backup_report "$backup_file"
