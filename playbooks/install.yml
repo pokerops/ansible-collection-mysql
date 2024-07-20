@@ -10,3 +10,6 @@
 
 - name: Configure MySQL backups
   ansible.builtin.import_playbook: pokerops.mysql.backups
+
+- name: Deploy MySQL Router
+  ansible.builtin.import_playbook: pokerops.mysql.mysqlrouter

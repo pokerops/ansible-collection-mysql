@@ -7,21 +7,21 @@ dependency:
 driver:
   name: default
 platforms:
-  - name: mysql-${MOLECULE_SCENARIO_NAME}-01
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-01
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
     mem: 8
     size: 30G
     groups:
       - mysql_cluster
-  - name: mysql-${MOLECULE_SCENARIO_NAME}-02
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-02
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
     mem: 8
     size: 30G
     groups:
       - mysql_cluster
-  - name: mysql-${MOLECULE_SCENARIO_NAME}-03
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-03
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
     mem: 8
