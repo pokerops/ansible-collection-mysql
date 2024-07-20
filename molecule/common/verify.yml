@@ -1,5 +1,5 @@
 ---
-- name: Verify MySQL services
+- name: Verify MySQL cluster services
   hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
   vars:
     mysql_server_daemon: mysql
@@ -53,3 +53,36 @@
         that: _cluster_member_status | reject('equalto', 'ONLINE') | length == 0
       vars:
         _cluster_member_status: "{{ _mysql_cluster_status.defaultReplicaSet.topology.values() | map(attribute='status') }}"
+
+
+- name: Verify MySQL cluster services
+  hosts: mysql_router
+  vars:
+    mysql_router_daemon: mysqlrouter
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Verify MySQL deployment
+      ansible.builtin.assert:
+        that: mysql_router_daemon in services
+
+    - name: Verify MySQL daemon
+      ansible.builtin.assert:
+        that: services[mysql_router_daemon].state == 'running'
+
+    - name: Verify MySQL Router master
+      community.mysql.mysql_query:
+        login_host: 127.0.0.1
+        login_port: 3306
+        login_user: clusteradmin
+        login_password: admin
+        query: "show databases"
+
+    - name: Verify MySQL Router slave
+      community.mysql.mysql_query:
+        login_host: 127.0.0.1
+        login_port: 3307
+        login_user: clusteradmin
+        login_password: admin
+        query: "show databases"

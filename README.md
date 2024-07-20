@@ -7,7 +7,7 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 
 ## ToDo
 
-* Add mysqlrouter playbook and test scenario
+* Add OS update playbook and test scenario
 * Add cluster failover deployment option and test scenario
 * Add database and user management to install scenario
 * Add Debian to test targets

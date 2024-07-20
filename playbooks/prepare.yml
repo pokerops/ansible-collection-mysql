@@ -1,6 +1,6 @@
 ---
 - name: Deploy MySQL repository
-  hosts: "_mysql_master:_mysql_slave:_mysql_alien"
+  hosts: "_mysql_master:_mysql_slave:_mysql_alien:{{ mysql_router_group | default('mysql_router') }}"
   become: true
   vars_files:
     - vars.yml

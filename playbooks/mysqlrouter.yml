@@ -1,0 +1,169 @@
+---
+- name: Deploy MySQL Router
+  hosts: "{{ mysql_router_group | default('mysql_router') }}"
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Verify mysql variable definitions
+      ansible.builtin.assert:
+        that:
+          - mysql_router_password is defined
+
+    - name: Remove conflicting host entries
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1'
+        state: absent
+
+    - name: Purge mysql-router cofiguration
+      when: _mysql_router_purge | bool
+      block:
+        - name: Purge MySQL Router packages
+          ansible.builtin.package:
+            name:
+              - mysql-router
+              - mysql-router-community
+            purge: true
+
+        - name: Purge MySQL Router directories
+          ansible.builtin.file:
+            state: absent
+            dest: "{{ item }}"
+          loop:
+            - "{{ _mysql_router_root }}"
+            - "{{ _mysql_router_conf }}"
+
+        - name: Destroy MySQL Router service file
+          ansible.builtin.file:
+            state: absent
+            dest: /etc/systemd/system/mysqlrouter.service
+
+    - name: Install MySQL Router packages
+      ansible.builtin.package:
+        name:
+          - mysql-client
+          - mysql-router
+          - python3-mysqldb
+      notify: daemon_reload
+
+    - name: Create MySQL Router directories
+      ansible.builtin.file:
+        state: directory
+        dest: "{{ item }}"
+        owner: "{{ _mysql_router_username }}"
+        group: "{{ _mysql_router_username }}"
+        mode: "u=rwx,g=rx,o="
+      loop:
+        - "{{ _mysql_router_root }}"
+        - "{{ _mysql_router_conf }}"
+
+    - name: Override MySQL Router service file
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/mysqlrouter.service
+        content: |
+          [Service]
+          User=root
+          Group=root
+          Type=notify
+          ExecStartPre=/usr/share/mysqlrouter/mysqlrouter-systemd-start pre
+          ExecStart=/usr/bin/mysqlrouter
+          LimitNOFILE = 10000
+          Restart=on-failure
+          PrivateTmp=true
+          [Install]
+          WantedBy=multi-user.target
+      notify: daemon_reload
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Stat MySQL Router state file
+      ansible.builtin.stat:
+        path: "{{ _mysql_router_root }}/state.json"
+      register: mysql_router_state
+
+    - name: Bootstrap MySQL Router
+      when: not mysql_router_state.stat.exists
+      block:
+        - name: Bootstrap MySQL Router
+          ansible.builtin.expect:
+            command: >-
+              mysqlrouter
+              --user {{ _mysql_router_username }}
+              --bootstrap {{ mysql_clusteradmin_username }}@{{ groups['_mysql_master'] | first }}:3306
+              --conf-base-port 3306
+              --account {{ _mysql_router_username }}
+              --account-create if-not-exists
+              --force
+            responses:
+              "Please enter MySQL password for [^:]+:":
+                - "{{ mysql_clusteradmin_password }}"
+                - "{{ mysql_router_password }}"
+            echo: yes
+          no_log: "{{ not _mysql_router_debug }}"
+          register: _router_bootstrap
+          retries: 3
+          delay: 20
+          until: _router_bootstrap is succeeded
+
+        - name: Restart MySQL Router service
+          ansible.builtin.service:
+            name: mysqlrouter
+            state: restarted
+
+    - name: Manage MySQL Router service
+      ansible.builtin.service:
+        name: mysqlrouter
+        state: started
+        enabled: true
+
+    - name: Verify MySQL Router services
+      block:
+        - name: Wait for MySQL Router startup
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: 3306
+            timeout: 30
+
+        - name: Verify MySQL Router master
+          community.mysql.mysql_query:
+            login_host: 127.0.0.1
+            login_port: 3306
+            login_user: "{{ mysql_clusteradmin_username }}"
+            login_password: "{{ mysql_clusteradmin_password }}"
+            query: "show databases"
+
+        - name: Verify MySQL Router slave
+          community.mysql.mysql_query:
+            login_host: 127.0.0.1
+            login_port: 3307
+            login_user: "{{ mysql_clusteradmin_username }}"
+            login_password: "{{ mysql_clusteradmin_password }}"
+            query: "show databases"
+
+      rescue:
+        - name: Notify daemon stop
+          ansible.builtin.debug:
+            msg: "Sinal stop handlers"
+          changed_when: true
+          notify: mysqlrouter_stop
+
+        - name: Debug failure remediation
+          ansible.builtin.fail:
+            msg: |
+              Unable to connect to innodb cluster using mysqlrouter;
+              Please run with mysql_router_purge=true to re-bootstrap
+              (see https://confluence.wpnops.net/pages/viewpage.action?pageId=300482717)"
+
+  handlers:
+    - name: Reload daemons
+      ansible.builtin.systemd:
+        daemon_reload: yes
+      listen: daemon_reload
+
+    - name: Stop MySQL Router
+      ansible.builtin.service:
+        name: mysqlrouter
+        state: stopped
+      listen: mysqlrouter_stop
