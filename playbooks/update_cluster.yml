@@ -1,0 +1,85 @@
+---
+- name: Update MySQL cluster members
+  hosts: "{{ mysql_update_group }}"
+  serial: "{{ mysql_update_serial | default(1) }}"
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    update_reboot: false
+    update_cache_valid_time: 1
+  roles:
+    - pokerops.mysql.update
+  tasks:
+    - name: Query MySQL cluster status
+      ansible.builtin.expect:
+        command: >
+          mysqlsh --cluster --javascript --password --save-passwords=always --quiet-start=2
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --execute 'print(cluster.status())'
+        responses:
+          ".*> $": "\\q"
+          ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
+        timeout: 3
+      register: _mysql_cluster_status_query
+      changed_when: false
+
+    - name: Set MySQL cluster status facts
+      ansible.builtin.set_fact:
+        _mysql_cluster_status: "{{ _cluster_state | join(' ') | from_json }}"
+      vars:
+        _cluster_state: "{{ _mysql_cluster_status_query.stdout_lines | reject('match', '.*Please provide the password.*') }}"
+
+    - name: Verify MySQL cluster state
+      ansible.builtin.assert:
+        that: _mysql_cluster_status.defaultReplicaSet.status == "OK"
+
+    - name: Verify MySQL cluster member state
+      ansible.builtin.assert:
+        that: inventory_hostname in _mysql_member_ok
+      vars:
+        _mysql_member_status: "{{ _mysql_cluster_status.defaultReplicaSet.topology.values() }}"
+        _mysql_member_online: "{{ _mysql_member_status | selectattr('status', 'equalto', 'ONLINE') }}"
+        _mysql_member_ok: "{{ _mysql_member_online | map(attribute='address') | map('split', ':') | map('first') }}"
+
+    - name: Stop MySQL service
+      ansible.builtin.service:
+        name: mysql
+        state: stopped
+
+    - name: Reboot node
+      ansible.builtin.reboot:
+        reboot_timeout: "{{ mysql_reboot_timeout | default(300) }}"
+
+    - name: Wait for SQL service startup
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 3306
+        timeout: 60
+
+    - name: Verify MySQL cluster and member status
+      ansible.builtin.expect:
+        command: >
+          mysqlsh --cluster --javascript --password --save-passwords=always --quiet-start=2
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --execute 'print(cluster.status())'
+        responses:
+          ".*> $": "\\q"
+          ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
+        timeout: 3
+      vars:
+        _mysql_cluster_state: "{{ _mysql_cluster_status_query.stdout_lines | reject('match', '.*Please provide the password.*') }}"
+        _mysql_cluster_status: "{{ _cluster_state | join(' ') | from_json }}"
+        _mysql_member_status: "{{ _mysql_cluster_status.defaultReplicaSet.topology.values() }}"
+        _mysql_member_online: "{{ _mysql_member_status | selectattr('status', 'equalto', 'ONLINE') }}"
+        _mysql_member_ok: "{{ _mysql_member_online | map(attribute='address') | map('split', ':') | map('first') }}"
+      register: _mysql_cluster_status_query
+      retries: 5
+      delay: 60
+      until:
+        - _mysql_cluster_status_query is succeeded
+        - _mysql_cluster_status.defaultReplicaSet.status == "OK"
+        - inventory_hostname in _mysql_member_ok
+      changed_when: false

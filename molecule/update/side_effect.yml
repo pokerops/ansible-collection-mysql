@@ -1,0 +1,6 @@
+---
+- name: Import update playbook
+  ansible.builtin.import_playbook: pokerops.mysql.update
+  vars:
+    mysql_cluster_group: mysql_cluster
+    mysql_router_group: mysql_router

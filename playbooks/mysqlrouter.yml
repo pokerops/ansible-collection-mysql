@@ -143,9 +143,9 @@
             query: "show databases"
 
       rescue:
-        - name: Notify daemon stop
+        - name: Notify stop handlers
           ansible.builtin.debug:
-            msg: "Sinal stop handlers"
+            msg: "Notify stop handlers"
           changed_when: true
           notify: mysqlrouter_stop
 
