@@ -1,0 +1,21 @@
+---
+- name: Load MySQL cluster facts
+  ansible.builtin.import_playbook: pokerops.mysql.facts
+
+
+- name: Update MySQL cluster slaves
+  ansible.builtin.import_playbook: pokerops.mysql.update_cluster
+  vars:
+    mysql_update_group: _mysql_slave
+
+
+- name: Load MySQL cluster facts
+  ansible.builtin.import_playbook: pokerops.mysql.update_cluster
+  vars:
+    mysql_update_group: _mysql_master
+
+
+- name: Load MySQL cluster facts
+  ansible.builtin.import_playbook: pokerops.mysql.update_router
+  vars:
+    mysql_update_group: "{{ mysql_router_group | default('mysql_router') }}"

@@ -7,7 +7,6 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 
 ## ToDo
 
-* Add OS update playbook and test scenario
 * Add cluster failover deployment option and test scenario
 * Add database and user management to install scenario
 * Add Debian to test targets
@@ -19,6 +18,7 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 | Hostgroup           |         Default | Description        |
 |:--------------------|----------------:|:-------------------|
 | mysql_cluster_group | 'mysql_cluster' | MySQL DBMS hosts   |
+| mysql_router_group  |   'mysql_router | MySQL router hosts |
 
 ## Collection variables
 
@@ -28,6 +28,7 @@ The following is the list of parameters intended for end-user customization:
 |:----------------------------|----------------------------:|:--------------------------------------------------|:---------|
 | mysql_cluster_name          |                         N/A | MySQL InnoDB cluster name                         | true     |
 | mysql_root_password         |                         N/A | MySQL root password                               | true     |
+| mysql_router_password       |                         N/A | MySQL router password                             | true     |
 | mysql_clusteradmin_password |                         N/A | MySQL clusteradmin password                       | true     |
 | mysql_release               |                         8.0 | Target PostgreSQL release in 'major.minor' format | false    |
 | mysql_cluster_packages      |                         N/A | Target PostgreSQL packages                        | false    |

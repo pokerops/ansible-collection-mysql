@@ -1,0 +1,53 @@
+---
+- name: Update MySQL Router
+  hosts: "{{ mysql_update_group | default('mysql_router') }}"
+  serial: "{{ mysql_update_serial | default(1) }}"
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    update_reboot: false
+    update_cache_valid_time: 1
+  roles:
+    - pokerops.mysql.update
+  pre_tasks:
+    - name: Notify stop handlers
+      ansible.builtin.debug:
+        msg: "Notify stop handlers"
+      changed_when: true
+      notify: mysqlrouter_stop
+
+    - name: Stop MySQL Router service
+      ansible.builtin.service:
+        name: mysqlrouter
+        state: stopped
+
+  tasks:
+    - name: Reboot node
+      ansible.builtin.reboot:
+        reboot_timeout: "{{ mysql_reboot_timeout | default(300) }}"
+
+    - name: Wait for SQL service startup
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 3306
+        timeout: 60
+
+    - name: Notify start handlers
+      ansible.builtin.debug:
+        msg: "Notify start handlers"
+      changed_when: true
+      notify: mysqlrouter_start
+
+  handlers:
+    - name: Stop MySQL Router
+      ansible.builtin.service:
+        name: mysqlrouter
+        state: stopped
+      listen: mysqlrouter_stop
+
+    - name: Start MySQL Router
+      ansible.builtin.service:
+        name: mysqlrouter
+        state: started
+      listen: mysqlrouter_start
