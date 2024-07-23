@@ -5,7 +5,7 @@
   vars_files:
     - ../../playbooks/vars.yml
   tasks:
-    - name: Query MySQL cluster status
+    - name: Query MySQL Cluster status
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:
@@ -38,13 +38,13 @@
         state: started
 
 
-- name: Verify cluster failover
+- name: Verify MySQL Cluster failover
   hosts: mysql_cluster
   become: true
   vars_files:
     - ../../playbooks/vars.yml
   tasks:
-    - name: Query MySQL cluster status
+    - name: Query MySQL Cluster status
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e \"{{ _mysql_cmd }}\""
       vars:
@@ -55,7 +55,7 @@
       ansible.builtin.meta: end_host
       when: _slave_query.stdout | int > 0
 
-    - name: Verify cluster master failover
+    - name: Verify MySQL Cluster master failover
       ansible.builtin.assert:
         that: mysql_cluster_master != inventory_hostname
 
@@ -67,10 +67,10 @@
     mysql_clusteradmin_password: notsosecret
 
 
-- name: Verify cluster password changes
+- name: Verify MySQL Cluster password changes
   hosts: mysql_cluster
   tasks:
-    - name: Query MySQL cluster status with stored credentials
+    - name: Query MySQL Cluster status with stored credentials
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:
@@ -78,7 +78,7 @@
       become: true
       register: _slave_cli_query
 
-    - name: Query MySQL cluster status with explicit credentials
+    - name: Query MySQL Cluster status with explicit credentials
       community.mysql.mysql_query:
         query: SELECT @@global.super_read_only AS sro
         login_user: root

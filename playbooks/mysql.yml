@@ -145,7 +145,7 @@
           symbols: {}
           segments: []
 
-    - name: Store MySQL local cluster member credentials
+    - name: Store MySQL Cluster local member credentials
       ansible.builtin.expect:
         command: >-
           mysqlsh --javascript --password --save-passwords=always --quiet-start=2
@@ -159,7 +159,7 @@
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
 
-    - name: Store MySQL remote cluster member credentials
+    - name: Store MySQL Cluster remote member credentials
       ansible.builtin.expect:
         command: >-
           mysqlsh --javascript --password --save-passwords=always --quiet-start=2
@@ -173,127 +173,3 @@
       loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
-
-
-- name: Configure InnoDB cluster
-  hosts: "_mysql_master"
-  vars_files:
-    - vars.yml
-  tasks:
-    - name: Query InnoDB cluster membership
-      community.mysql.mysql_query:
-        query: "SELECT member_host FROM performance_schema.replication_group_members"
-        login_user: "{{ mysql_root_username | default('root') }}"
-        login_password: "{{ mysql_root_password }}"
-      ignore_errors: true
-      register: _member_query
-
-    - name: Set InnoDB cluster facts
-      ansible.builtin.set_fact:
-        _mysql_cluster_targets: "{{ _mysql_cluster_groups | map('extract', groups) | flatten | unique }}"
-        _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
-      vars:
-        _mysql_cluster_groups: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) }}"
-
-    - name: Initialize InnoDB cluster
-      when: _mysql_cluster_members | length == 0
-      block:
-        - name: Verify cluster instance readiness
-          ansible.builtin.command:
-            cmd: >-
-              mysqlsh --javascript
-                --host {{ item }}
-                --user {{ mysql_clusteradmin_username }}
-                --execute 'dba.checkInstanceConfiguration()'
-          vars:
-            _mysql_msg: "Instance configuration is compatible with InnoDB cluster"
-          register: _mysql_check_instance
-          failed_when: _mysql_check_instance.stderr is not search(_mysql_msg)
-          loop: "{{ _mysql_cluster_targets }}"
-
-        - name: Bootstrap InnoDB cluster
-          ansible.builtin.command:
-            cmd: >-
-              mysqlsh --javascript
-                --host {{ inventory_hostname }}
-                --user {{ mysql_clusteradmin_username }}
-                --execute 'dba.createCluster("{{ mysql_cluster_name }}")'
-          vars:
-            _mysql_msg: "Cluster successfully created"
-          register: _mysql_cluster_bootstrap
-          failed_when: _mysql_cluster_bootstrap.stderr is not search(_mysql_msg)
-
-        - name: Add InnoDB cluster instances
-          ansible.builtin.command:
-            cmd: >-
-              mysqlsh --javascript --cluster
-                --host {{ inventory_hostname }}
-                --user {{ mysql_clusteradmin_username }}
-                --execute 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
-          vars:
-            _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_msg: "The instance '{{ item }}:3306' was successfully added to the cluster"
-          register: _mysql_cluster_join
-          failed_when: _mysql_cluster_join.stderr is not search(_mysql_msg)
-          loop: "{{ _mysql_cluster_targets | difference([inventory_hostname]) }}"
-
-    - name: Manage InnoDB cluster state
-      when: _mysql_cluster_members | length > 0
-      block:
-        - name: Set cluster facts
-          ansible.builtin.set_fact:
-            _mysql_cluster_member_add: "{{ _mysql_cluster_targets | difference(_mysql_cluster_members) }}"
-            _mysql_cluster_member_del: "{{ _mysql_cluster_members | difference(_mysql_cluster_targets) }}"
-
-        - name: Debug cluster member additions
-          ansible.builtin.debug:
-            msg: "Adding cluster members [{{ _mysql_cluster_member_add | join(', ') }}]"
-
-        - name: Debug cluster member removals
-          ansible.builtin.debug:
-            msg: "Removing cluster members [{{ _mysql_cluster_member_del | join(', ') }}]"
-
-        - name: Add InnoDB cluster members
-          ansible.builtin.command:
-            cmd: >-
-              mysqlsh --javascript --cluster
-                --host {{ inventory_hostname }}
-                --user {{ mysql_clusteradmin_username }}
-                --execute 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
-          vars:
-            _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_msg: "The instance '{{ item }}:3306' was successfully added to the cluster"
-          register: _mysql_cluster_join
-          failed_when: _mysql_cluster_join.stderr is not search(_mysql_msg)
-          loop: "{{ _mysql_cluster_member_add }}"
-
-        - name: Remove InnoDB cluster members
-          ansible.builtin.command:
-            cmd: >-
-              mysqlsh --javascript --cluster
-                --host {{ inventory_hostname }}
-                --user {{ mysql_clusteradmin_username }}
-                --execute 'cluster.removeInstance("{{ _mysql_instance }}")'
-          vars:
-            _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
-            _mysql_msg: "The instance '{{ item }}:3306' was successfully removed from the cluster"
-          register: _mysql_cluster_del
-          failed_when: _mysql_cluster_del.stderr is not search(_mysql_msg)
-          loop: "{{ _mysql_cluster_member_del }}"
-
-    - name: Manage InnoDB cluster DBs and users
-      block:
-        - name: Include MySQL variables
-          ansible.builtin.include_role:
-            name: pokerops.mysql.mysql
-            tasks_from: "variables"
-
-        - name: Configure MySQL cluster databases
-          ansible.builtin.include_role:
-            name: pokerops.mysql.mysql
-            tasks_from: "databases"
-
-        - name: Configure MySQL cluster users
-          ansible.builtin.include_role:
-            name: pokerops.mysql.mysql
-            tasks_from: "users"

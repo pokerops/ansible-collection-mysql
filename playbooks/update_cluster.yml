@@ -1,5 +1,5 @@
 ---
-- name: Update MySQL cluster members
+- name: Update MySQL Cluster members
   hosts: "{{ mysql_update_group }}"
   serial: "{{ mysql_update_serial | default(1) }}"
   become: true
@@ -11,7 +11,7 @@
   roles:
     - pokerops.mysql.update
   tasks:
-    - name: Query MySQL cluster status
+    - name: Query MySQL Cluster status
       ansible.builtin.expect:
         command: >
           mysqlsh --cluster --javascript --password --save-passwords=always --quiet-start=2
@@ -25,17 +25,17 @@
       register: _mysql_cluster_status_query
       changed_when: false
 
-    - name: Set MySQL cluster status facts
+    - name: Set MySQL Cluster status facts
       ansible.builtin.set_fact:
         _mysql_cluster_status: "{{ _cluster_state | join(' ') | from_json }}"
       vars:
         _cluster_state: "{{ _mysql_cluster_status_query.stdout_lines | reject('match', '.*Please provide the password.*') }}"
 
-    - name: Verify MySQL cluster state
+    - name: Verify MySQL Cluster state
       ansible.builtin.assert:
         that: _mysql_cluster_status.defaultReplicaSet.status == "OK"
 
-    - name: Verify MySQL cluster member state
+    - name: Verify MySQL Cluster member state
       ansible.builtin.assert:
         that: inventory_hostname in _mysql_member_ok
       vars:
@@ -58,7 +58,7 @@
         port: 3306
         timeout: 60
 
-    - name: Verify MySQL cluster and member status
+    - name: Verify MySQL Cluster and member status
       ansible.builtin.expect:
         command: >
           mysqlsh --cluster --javascript --password --save-passwords=always --quiet-start=2
