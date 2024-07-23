@@ -1,5 +1,5 @@
 ---
-- name: Verify MySQL cluster services
+- name: Verify MySQL Cluster services
   hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
   vars:
     mysql_server_daemon: mysql
@@ -15,7 +15,7 @@
       ansible.builtin.assert:
         that: services[mysql_server_daemon].state == 'running'
 
-    - name: Query MySQL cluster status
+    - name: Query MySQL Cluster status
       ansible.builtin.command:
         cmd: >
           mysqlsh --cluster --javascript --quiet-start=2
@@ -25,7 +25,7 @@
       register: _mysql_cluster_status_query
       changed_when: false
 
-    - name: Set MySQL cluster facts
+    - name: Set MySQL Cluster facts
       ansible.builtin.set_fact:
         _mysql_cluster_status: "{{ _mysql_cluster_status_query.stdout | from_json }}"
 
@@ -34,28 +34,28 @@
         var: _mysql_cluster_status
       run_once: true
 
-    - name: Verify MySQL cluster name
+    - name: Verify MySQL Cluster name
       ansible.builtin.assert:
         that: _mysql_cluster_status.clusterName == mysql_cluster_name
 
-    - name: Verify MySQL cluster replicaset status
+    - name: Verify MySQL Cluster replicaset status
       ansible.builtin.assert:
         that: _mysql_cluster_status.defaultReplicaSet.status == "OK"
 
-    - name: Verify MySQL cluster replicaset members
+    - name: Verify MySQL Cluster replicaset members
       ansible.builtin.assert:
         that: _cluster_members | difference(ansible_play_hosts_all) | length == 0
       vars:
         _cluster_members: "{{ _mysql_cluster_status.defaultReplicaSet.topology.keys() | map('split', ':') | map('first') }}"
 
-    - name: Verify MySQL cluster replicaset member status
+    - name: Verify MySQL Cluster replicaset member status
       ansible.builtin.assert:
         that: _cluster_member_status | reject('equalto', 'ONLINE') | length == 0
       vars:
         _cluster_member_status: "{{ _mysql_cluster_status.defaultReplicaSet.topology.values() | map(attribute='status') }}"
 
 
-- name: Verify MySQL cluster services
+- name: Verify MySQL Cluster services
   hosts: mysql_router
   vars:
     mysql_router_daemon: mysqlrouter

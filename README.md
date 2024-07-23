@@ -45,6 +45,7 @@ Additionally parameters from Geerlinguy's MySQL [role](https://github.com/geerli
 ## Collection playbooks
 
 * nephelaiio.patroni.install: Install and bootstrap cluster
+* nephelaiio.patroni.update: Update cluster OS
 
 ## Testing
 

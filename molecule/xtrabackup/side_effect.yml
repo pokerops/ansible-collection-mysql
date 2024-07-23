@@ -3,7 +3,7 @@
   hosts: all
   become: true
   tasks:
-    - name: Query MySQL cluster status
+    - name: Query MySQL Cluster status
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:

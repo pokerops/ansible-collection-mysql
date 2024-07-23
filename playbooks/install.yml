@@ -1,12 +1,15 @@
 ---
-- name: Load MySQL cluster facts
+- name: Load MySQL Cluster facts
   ansible.builtin.import_playbook: pokerops.mysql.facts
 
 - name: Prepare MySQL nodes
   ansible.builtin.import_playbook: pokerops.mysql.prepare
 
-- name: Deploy MySQL cluster
+- name: Deploy MySQL Cluster
   ansible.builtin.import_playbook: pokerops.mysql.mysql
+
+- name: Deploy MySQL Cluster
+  ansible.builtin.import_playbook: pokerops.mysql.cluster
 
 - name: Configure MySQL backups
   ansible.builtin.import_playbook: pokerops.mysql.backups
