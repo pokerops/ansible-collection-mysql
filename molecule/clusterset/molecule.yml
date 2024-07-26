@@ -1,0 +1,108 @@
+---
+dependency:
+  name: galaxy
+  options:
+    role-file: requirements.yml
+    requirements-file: requirements.yml
+driver:
+  name: default
+platforms:
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-primary-01
+    image: "${MOLECULE_KVM_IMAGE}"
+    cpu: 2
+    mem: 4
+    size: 30G
+    groups:
+      - mysql_cluster
+      - mysql_cluster_primary
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-primary-02
+    image: "${MOLECULE_KVM_IMAGE}"
+    cpu: 2
+    mem: 4
+    size: 30G
+    groups:
+      - mysql_cluster
+      - mysql_cluster_primary
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-primary-03
+    image: "${MOLECULE_KVM_IMAGE}"
+    cpu: 2
+    mem: 4
+    size: 30G
+    groups:
+      - mysql_cluster
+      - mysql_cluster_primary
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-secondary-01
+    image: "${MOLECULE_KVM_IMAGE}"
+    cpu: 2
+    mem: 4
+    size: 30G
+    groups:
+      - mysql_cluster
+      - mysql_cluster_secondary
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-secondary-02
+    image: "${MOLECULE_KVM_IMAGE}"
+    cpu: 2
+    mem: 4
+    size: 30G
+    groups:
+      - mysql_cluster
+      - mysql_cluster_secondary
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-secondary-03
+    image: "${MOLECULE_KVM_IMAGE}"
+    cpu: 2
+    mem: 4
+    size: 30G
+    groups:
+      - mysql_cluster
+      - mysql_cluster_secondary
+  - name: mysql-${MOLECULE_SCENARIO_NAME}-router-01
+    image: "${MOLECULE_KVM_IMAGE}"
+    cpu: 2
+    mem: 4
+    size: 30G
+    groups:
+      - mysql_router
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp
+      allow_world_readable_tmpfiles: true
+      callbacks_enabled: ansible.posix.profile_tasks
+  playbooks:
+    create: ../common/create.yml
+    prepare: ../common/prepare.yml
+    converge: ../common/install.yml
+    verify: ../common/verify.yml
+    destroy: ../common/destroy.yml
+  inventory:
+    group_vars:
+      all:
+        libvirt_platforms: "{{ molecule_yml.platforms }}"
+        mysql_nolog: false
+        mysql_root_password: molecule
+        mysql_clusteradmin_password: admin
+        mysql_router_password: router
+        mysql_clusterset_name: clusterset
+      mysql_cluster_primary:
+        mysql_cluster_name: primary
+      mysql_cluster_secondary:
+        mysql_cluster_name: secondary
+verifier:
+  name: ansible
+scenario:
+  prepare_sequence:
+    - prepare
+  converge_sequence:
+    - converge
+  destroy_sequence:
+    - destroy
+  cleanup_sequence:
+    - cleanup
+  test_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+    - side_effect
+    - verify

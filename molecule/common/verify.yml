@@ -18,10 +18,10 @@
     - name: Query MySQL Cluster status
       ansible.builtin.command:
         cmd: >
-          mysqlsh --cluster --javascript --quiet-start=2
+          mysqlsh --javascript --quiet-start=2
             --host {{ inventory_hostname }}
             --user clusteradmin
-            --execute 'print(cluster.status())'
+            --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
       register: _mysql_cluster_status_query
       changed_when: false
 

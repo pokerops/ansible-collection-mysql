@@ -1,0 +1,166 @@
+---
+- name: Manage MySQL ClusterSet
+  hosts: "_mysql_master"
+  vars:
+    _domain_name: domainName
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Verify MySQL Cluster status
+      ansible.builtin.assert:
+        that:
+          - mysql_clusterset_name is defined
+          - mysql_clusterset_name != ''
+
+    - name: Query MySQL Cluster state
+      ansible.builtin.command:
+        cmd: >-
+          mysqlsh --javascript
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
+      register: _mysql_cluster_query
+
+    - name: Set MySQL Cluster status facts
+      ansible.builtin.set_fact:
+        _mysql_cluster_status: "{{ _mysql_cluster_query.stdout | from_json }}"
+
+    - name: Create MySQL ClusterSet
+      ansible.builtin.command:
+        cmd: >-
+          mysqlsh --javascript
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --execute 'dba.getCluster("{{ mysql_cluster_name }}").createClusterSet("{{ mysql_clusterset_name }}")'
+      register: _mysql_clusterset_query
+      when: _domain_name not in _mysql_cluster_status
+
+    - name: Verify MySQL Cluster domain name
+      ansible.builtin.assert:
+        that: _mysql_cluster_status[_domain_name] == mysql_clusterset_name
+      when: _domain_name in _mysql_cluster_status
+
+    - name: Query MySQL ClusterSet state
+      ansible.builtin.command:
+        cmd: >-
+          mysqlsh --javascript --cluster
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --execute 'print(dba.getClusterSet().status({extended: 1}))'
+      register: _mysql_clusterset_query
+
+    - name: Set MySQL Cluster status facts
+      ansible.builtin.set_fact:
+        _mysql_clusterset_status: "{{ _mysql_clusterset_query.stdout | from_json }}"
+
+    - name: Set MySQL ClusterSet facts
+      ansible.builtin.set_fact:
+        _mysql_clusterset_member_clusters: {}
+        _mysql_clusterset_cluster_names: "{{ _clusternames }}"
+        _mysql_clusterset_member_assign: "{{ _clustermember_clusters }}"
+      vars:
+        _clusternames: "{{ _mysql_clusterset_status.clusters.keys() }}"
+        _clustermember_topology: "{{ _mysql_clusterset_status.clusters.values() | map(attribute='topology') }}"
+        _clustermember_data: "{{ _clustermember_topology | map('dict2items') | map('map', attribute='value') }}"
+        _clustermember_names: "{{ _clustermember_data | map('map', attribute='address') | map('map', 'split', ':') | map('map', 'first') }}"
+        _clustermember_clusters: "{{ _clustermember_names | zip(_clusternames) }}"
+
+    - name: Set MySQL ClusterSet facts
+      ansible.builtin.set_fact:
+        _mysql_clusterset_member_clusters: "{{ _mysql_clusterset_member_clusters | combine(_cluster_members) }}"
+      vars:
+        _members: "{{ item.0 }}"
+        _cluster: "{{ item.1 }}"
+        _cluster_members: "{{ _members | product([_cluster]) | community.general.dict }}"
+      loop_control:
+        label: "{{ _cluster }}"
+      loop: "{{ _mysql_clusterset_member_assign }}"
+
+    - name: Record MySQL ClusterSet facts
+      ansible.builtin.set_fact:
+        _mysql_clusterset_clusters: "{{ _mysql_clusterset_cluster_names }}"
+        _mysql_clusterset_members: "{{ _mysql_clusterset_member_clusters }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+
+- name: Verify ClusterSet cluster assignments
+  hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
+  vars_files:
+    - vars.yml
+  any_errors_fatal: true
+  tasks:
+    - name: Verify MySQL ClusterSet assignments
+      ansible.builtin.assert:
+        that: _actual == _expected
+        fail_msg: "Unsupported ClusterSet member cluster change requested; expected '{{ _expected }}', got '{{ _actual }}'"
+      vars:
+        _clusterset_members: "{{ hostvars['localhost']['_mysql_clusterset_members'] }}"
+        _expected: "{{ mysql_cluster_name }}"
+        _actual: "{{ _clusterset_members[inventory_hostname] }}"
+      when: inventory_hostname in _clusterset_members
+
+
+- name: Manage replica MySQL Clusters from ClusterSet
+  hosts: "_mysql_master"
+  vars_files:
+    - vars.yml
+  any_errors_fatal: true
+  tasks:
+    - name: Set MySQL ClusterSet facts
+      ansible.builtin.set_fact:
+        _clusterset_actual_members: "{{ hostvars['localhost']['_mysql_clusterset_members'] }}"
+        _clusterset_actual_clusters: "{{ hostvars['localhost']['_mysql_clusterset_clusters'] }}"
+        _clusterset_target_members: "{{ _mysql_hosts | zip(_member_clusters) | community.general.dict }}"
+        _clusterset_target_clusters: "{{ _member_clusters | zip(_mysql_hosts) | reverse | community.general.dict }}"
+      vars:
+        _mysql_group: "{{ mysql_cluster_group | default('mysql_cluster') }}"
+        _mysql_hosts: "{{ groups[_mysql_group] }}"
+        _member_clusters: "{{ _mysql_hosts | map('extract', hostvars, 'mysql_cluster_name') }}"
+
+    - name: Set MySQL ClusterSet operation facts
+      ansible.builtin.set_fact:
+        _clusterset_cluster_add: "{{  _clusterset_target_clusters | difference(_clusterset_actual_clusters) }}"
+        _clusterset_cluster_del: "{{ _clusterset_actual_clusters | difference(_clusterset_target_clusters) }}"
+        _clusterset_member_add: "{{ _member_add_names | zip(_member_add_data) | community.general.dict }}"
+        _clusterset_member_del: "{{ _member_del_names | zip(_member_del_data) | community.general.dict }}"
+      vars:
+        _member_add_names: "{{ _clusterset_target_members.keys() | difference(_clusterset_actual_members.keys()) }}"
+        _member_add_data: "{{ _member_add_names | map('extract', _clusterset_target_members) }}"
+        _member_del_names: "{{ _clusterset_actual_members.keys() | difference(_clusterset_target_members.keys()) }}"
+        _member_del_data: "{{ _member_del_names | map('extract', _clusterset_actual_members) }}"
+
+    - name: Create MySQL ClusterSet replica clusters
+      ansible.builtin.command:
+        cmd: >-
+          mysqlsh --javascript
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --execute 'dba.getCluster("{{ mysql_cluster_name }}").getClusterSet().createReplicaCluster(
+              "{{ _clusterset_target_clusters[item] }}",
+              "{{ item }}",
+              {recoveryMethod: "clone"})'
+      loop: "{{ _clusterset_cluster_add }}"
+      register: _mysql_clusterset_create
+
+    - name: Add MySQL ClusterSet replica cluster members
+      ansible.builtin.command:
+        cmd: >-
+          mysqlsh --javascript --cluster
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --execute 'dba.getCluster("{{ _clusterset_member_add[item] }}").addInstance("{{ item }}", {recoveryMethod: "clone"})'
+      vars:
+        _member_add_replicas: "{{ _clusterset_member_add.keys() | difference(_clusterset_target_clusters.values()) }}"
+      loop: "{{ _member_add_replicas  }}"
+
+    - name: Remove MySQL ClusterSet replica cluster members
+      ansible.builtin.command:
+        cmd: >-
+          mysqlsh --javascript --cluster
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --execute 'dba.getCluster("{{ _clusterset_actual_members[item] }}").removeInstance("{{ item }}")'
+      vars:
+        _member_del_replicas: "{{ _clusterset_member_del.keys() | difference(_clusterset_actual_members.values()) }}"
+      loop: "{{ _member_del_replicas  }}"

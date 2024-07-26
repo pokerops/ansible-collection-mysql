@@ -1,0 +1,7 @@
+---
+- name: Load MySQL Cluster facts
+  ansible.builtin.import_playbook: pokerops.mysql.facts
+
+- name: Configure MySQL ClusterSet
+  ansible.builtin.import_playbook: pokerops.mysql.clusterset
+  when: mysql_clusterset_name is defined

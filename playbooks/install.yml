@@ -16,3 +16,7 @@
 
 - name: Deploy MySQL Router
   ansible.builtin.import_playbook: pokerops.mysql.mysqlrouter
+
+- name: Configure MySQL ClusterSet
+  ansible.builtin.import_playbook: pokerops.mysql.clusterset
+  when: mysql_clusterset_name is defined
