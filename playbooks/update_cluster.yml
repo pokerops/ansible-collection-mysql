@@ -17,7 +17,7 @@
           mysqlsh --javascript --password --save-passwords=always --quiet-start=2
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
-            --execute 'print(dba.getClusterSet().status())'
+            --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
         responses:
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
