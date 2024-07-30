@@ -110,4 +110,3 @@ scenario:
     - prepare
     - converge
     - side_effect
-    - verify
