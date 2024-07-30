@@ -80,5 +80,5 @@
           vars:
             mysql_cluster_names: "{{ mysql_clusterset_status.clusters.keys() }}"
             mysql_inventory_groups: "{{ groups.keys() | select('match', '^_mysql_cluster_.*') }}"
-            mysql_inventory_clusters: "{{ mysql_target_groups | map('regex_replace', '^_mysql_cluster_', '')  }}"
+            mysql_inventory_clusters: "{{ mysql_inventory_groups | map('regex_replace', '^_mysql_cluster_', '')  }}"
             mysql_target_clusters: "{{ mysql_verification_clusters | default(mysql_inventory_clusters) }}"
