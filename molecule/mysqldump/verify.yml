@@ -5,8 +5,6 @@
 
 - name: Verify mysqldump restore
   hosts: all
-  vars:
-    mysql_server_daemon: mysql
   tasks:
     - name: List databases
       community.mysql.mysql_query:

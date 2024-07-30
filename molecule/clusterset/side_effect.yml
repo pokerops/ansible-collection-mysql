@@ -1,7 +1,17 @@
 ---
 - name: Load MySQL Cluster facts
   ansible.builtin.import_playbook: pokerops.mysql.facts
+  vars:
+    mysql_cluster_group: mysql_cluster_scaledown
 
-- name: Configure MySQL ClusterSet
-  ansible.builtin.import_playbook: pokerops.mysql.clusterset
-  when: mysql_clusterset_name is defined
+
+- name: Scale down ClusterSet members
+  ansible.builtin.import_playbook: ../common/install.yml
+  vars:
+    mysql_cluster_group: mysql_cluster_scaledown
+
+
+- name: Run verification play for scaledown clusterset
+  ansible.builtin.import_playbook: ./verify.yml
+  vars:
+    mysql_verification_group: mysql_cluster_scaledown

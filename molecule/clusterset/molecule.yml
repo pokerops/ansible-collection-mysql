@@ -15,6 +15,7 @@ platforms:
     groups:
       - mysql_cluster
       - mysql_cluster_primary
+      - mysql_cluster_scaledown
   - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-primary-02
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
@@ -23,6 +24,7 @@ platforms:
     groups:
       - mysql_cluster
       - mysql_cluster_primary
+      - mysql_cluster_scaledown
   - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-primary-03
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
@@ -31,6 +33,7 @@ platforms:
     groups:
       - mysql_cluster
       - mysql_cluster_primary
+      - mysql_cluster_scaledown
   - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-secondary-01
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
@@ -39,6 +42,7 @@ platforms:
     groups:
       - mysql_cluster
       - mysql_cluster_secondary
+      - mysql_cluster_scaledown
   - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-secondary-02
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
@@ -47,6 +51,7 @@ platforms:
     groups:
       - mysql_cluster
       - mysql_cluster_secondary
+      - mysql_cluster_scaledown
   - name: mysql-${MOLECULE_SCENARIO_NAME}-cluster-secondary-03
     image: "${MOLECULE_KVM_IMAGE}"
     cpu: 2
@@ -72,8 +77,7 @@ provisioner:
   playbooks:
     create: ../common/create.yml
     prepare: ../common/prepare.yml
-    converge: ../common/install.yml
-    verify: ../common/verify.yml
+    converge: ./install.yml
     destroy: ../common/destroy.yml
   inventory:
     group_vars:
@@ -84,6 +88,7 @@ provisioner:
         mysql_clusteradmin_password: admin
         mysql_router_password: router
         mysql_clusterset_name: clusterset
+        mysql_backup_configure: false
       mysql_cluster_primary:
         mysql_cluster_name: primary
       mysql_cluster_secondary:

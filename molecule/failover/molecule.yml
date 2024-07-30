@@ -51,6 +51,7 @@ provisioner:
           mysql_root_password: molecule
           mysql_clusteradmin_password: admin
           mysql_cluster_name: failover
+        mysql_backup_configure: true
 verifier:
   name: ansible
 scenario:

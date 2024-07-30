@@ -1,0 +1,9 @@
+---
+- name: Run standard converge play
+  ansible.builtin.import_playbook: ../common/install.yml
+
+
+- name: Run standard verification play
+  ansible.builtin.import_playbook: ./verify.yml
+  vars:
+    mysql_verification_group: mysql_cluster

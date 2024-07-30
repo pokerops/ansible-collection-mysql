@@ -101,7 +101,7 @@
       when: inventory_hostname in _clusterset_members
 
 
-- name: Manage replica MySQL Clusters from ClusterSet
+- name: Manage ClusterSet replica MySQL Clusters
   hosts: "_mysql_master"
   vars_files:
     - vars.yml
