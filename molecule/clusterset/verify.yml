@@ -4,12 +4,9 @@
 
 
 - name: Verify MySQL Cluster services
-  hosts: mysql_cluster_scaledown
+  hosts: "{{ mysql_cluster_group }}"
+  any_errors_fatal: true
   tasks:
-    - name: End play if mysql_verification_group is unset
-      ansible.builtin.meta: end_play
-      when: mysql_verification_group is not defined
-
     - name: End play for master host
       ansible.builtin.meta: end_host
       when: inventory_hostname in groups['_mysql_master']
@@ -44,8 +41,8 @@
             _mysql_clusterset_members: "{{ _mysql_clusterset_topology | map('dict2items') | map('map', attribute='value') | flatten }}"
             _mysql_clusterset_member_names: "{{ _mysql_clusterset_members | map(attribute='address') | map('split', ':') | map('first') }}"
             _mysql_clusterset_member_status: "{{ _mysql_clusterset_members | map(attribute='status') }}"
-            _mysql_clusterset_member_extra: "{{ _mysql_clusterset_member_names | difference(groups[mysql_verification_group]) }}"
-            _mysql_clusterset_member_missing: "{{ groups[mysql_verification_group] | difference(_mysql_clusterset_member_names) }}"
+            _mysql_clusterset_member_extra: "{{ _mysql_clusterset_member_names | difference(groups[mysql_cluster_group]) }}"
+            _mysql_clusterset_member_missing: "{{ groups[mysql_cluster_group] | difference(_mysql_clusterset_member_names) }}"
             _mysql_clusterset_member_offline: "{{ _mysql_clusterset_member_status | reject('equalto', 'ONLINE') }}"
 
         - name: Debug MySQL ClusterSet status
@@ -58,7 +55,7 @@
 
         - name: Debug MySQL ClusterSet target names
           ansible.builtin.debug:
-            msg: "{{ groups[mysql_verification_group] }}"
+            msg: "{{ groups[mysql_cluster_group] }}"
 
         - name: Debug MySQL ClusterSet member names
           ansible.builtin.debug:
@@ -74,3 +71,14 @@
               - mysql_clusterset_member_offline | length == 0
               - mysql_clusterset_member_extra | length == 0
               - mysql_clusterset_member_missing | length == 0
+
+        - name: Verify MySQL ClusterSet clusters
+          ansible.builtin.assert:
+            that:
+              - (mysql_cluster_names | difference(mysql_target_clusters)) | length == 0
+              - (mysql_target_clusters | difference(mysql_cluster_names)) | length == 0
+          vars:
+            mysql_cluster_names: "{{ mysql_clusterset_status.clusters.keys() }}"
+            mysql_inventory_groups: "{{ groups.keys() | select('match', '^_mysql_cluster_.*') }}"
+            mysql_inventory_clusters: "{{ mysql_target_groups | map('regex_replace', '^_mysql_cluster_', '')  }}"
+            mysql_target_clusters: "{{ mysql_verification_clusters | default(mysql_inventory_clusters) }}"

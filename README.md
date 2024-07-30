@@ -7,7 +7,6 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 
 ## ToDo
 
-* Add cluster failover deployment option and test scenario
 * Add database and user management to install scenario
 * Add Debian to test targets
 * Add support for RockyLinux / AlmaLinux

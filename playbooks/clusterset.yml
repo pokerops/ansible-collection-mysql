@@ -149,8 +149,9 @@
           mysqlsh --javascript --cluster
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
-            --execute 'dba.getCluster("{{ _clusterset_member_add[item] }}").addInstance("{{ item }}", {recoveryMethod: "clone"})'
+            --execute 'dba.getCluster("{{ _member_add_cluster }}").addInstance("{{ item }}", {recoveryMethod: "clone"})'
       vars:
+        _member_add_cluster: "{{ _clusterset_member_add[item] }}"
         _member_add_replicas: "{{ _clusterset_member_add.keys() | difference(_clusterset_target_clusters.values()) }}"
       loop: "{{ _member_add_replicas  }}"
 
@@ -160,7 +161,18 @@
           mysqlsh --javascript --cluster
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
-            --execute 'dba.getCluster("{{ _clusterset_actual_members[item] }}").removeInstance("{{ item }}")'
+            --execute 'dba.getCluster("{{ _member_del_cluster }}").removeInstance("{{ item }}")'
       vars:
+        _member_del_cluster: "{{ _clusterset_actual_members[item] }}"
         _member_del_replicas: "{{ _clusterset_member_del.keys() | difference(_clusterset_actual_members.values()) }}"
       loop: "{{ _member_del_replicas  }}"
+      when: _member_del_cluster not in _clusterset_cluster_del
+
+    - name: Remove MySQL ClusterSet replica cluster
+      ansible.builtin.command:
+        cmd: >-
+          mysqlsh --javascript --cluster
+            --host {{ inventory_hostname }}
+            --user {{ mysql_clusteradmin_username }}
+            --execute 'clusterset.removeCluster("{{ item }}")'
+      loop: "{{ _clusterset_cluster_del  }}"
