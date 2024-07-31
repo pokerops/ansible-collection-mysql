@@ -12,16 +12,25 @@
       ignore_errors: true
       register: _member_query
 
+    - name: Verify MySQL Cluster names
+      ansible.builtin.assert:
+        that: _cluster_groups | length == 1
+        fail_msg: "A single cluster name is permitted for standalone clusters, found [{{ _cluster_groups | join(', ') }}]"
+      vars:
+        _cluster_groups: "{{ groups.keys() | select('match', '^_mysql_cluster_.*') }}"
+      when: mysql_clusterset_name is not defined
+
     - name: Set MySQL Cluster facts
       ansible.builtin.set_fact:
-        _mysql_cluster_targets: "{{ _mysql_role_groups | map('extract', groups) | flatten | unique | difference(_mysql_cluster_exclude) }}"
+        _mysql_cluster_targets: "{{ _role_groups | map('extract', groups) | flatten | unique | difference(_cluster_exclude) }}"
         _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
+        _mysql_cluster_exclude: "{{ _cluster_exclude }}"
       vars:
-        _mysql_role_groups: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) }}"
-        _mysql_cluster_groups: "{{ groups.keys() | select('match', '^_mysql_cluster_.*') }}"
-        _mysql_cluster_groups_primary: "_mysql_cluster_{{ mysql_cluster_name }}"
-        _mysql_cluster_groups_standby: "{{ _mysql_cluster_groups | reject('equalto', _mysql_cluster_groups_primary) }}"
-        _mysql_cluster_exclude: "{{ _mysql_cluster_groups_standby | map('extract', groups) | flatten | unique }}"
+        _role_groups: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) }}"
+        _cluster_groups: "{{ groups.keys() | select('match', '^_mysql_cluster_.*') }}"
+        _cluster_groups_primary: "_mysql_cluster_{{ mysql_cluster_name }}"
+        _cluster_groups_standby: "{{ _cluster_groups | reject('equalto', _cluster_groups_primary) }}"
+        _cluster_exclude: "{{ _cluster_groups_standby | map('extract', groups) | flatten | unique }}"
 
     - name: Initialize MySQL Cluster
       when: _mysql_cluster_members | length == 0
@@ -54,10 +63,10 @@
         - name: Add MySQL Cluster instances
           ansible.builtin.command:
             cmd: >-
-              mysqlsh --javascript --cluster
+              mysqlsh --javascript
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
-                --execute 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
+                --execute 'dba.getCluster("{{ mysql_cluster_name }}").addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
           vars:
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
             _mysql_msg: "The instance '{{ item }}:3306' was successfully added to the cluster"
@@ -71,10 +80,10 @@
         - name: Add MySQL Cluster members
           ansible.builtin.command:
             cmd: >-
-              mysqlsh --javascript --cluster
+              mysqlsh --javascript
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
-                --execute 'print(cluster.status())'
+                --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
           register: _mysql_cluster_query
 
         - name: Set MySQL Cluster facts
@@ -85,8 +94,11 @@
 
         - name: Verify MySQL Cluster name
           ansible.builtin.assert:
-            that: _mysql_cluster_status['clusterName'] == mysql_cluster_name
-            fail_msg: "Unsupported, expected '{{ mysql_cluster_name }}', got '{{ _mysql_cluster_status['clusterName'] }}'"
+            that: _actual == _expected
+            fail_msg: "Unsupported cluster name change requested; expected '{{ _expected }}', got '{{ _actual }}'"
+          vars:
+            _expected: "{{ mysql_cluster_name }}"
+            _actual: "{{ _mysql_cluster_status['clusterName'] }}"
 
         - name: Debug MySQL Cluster member additions
           ansible.builtin.debug:
@@ -99,10 +111,10 @@
         - name: Add MySQL Cluster members
           ansible.builtin.command:
             cmd: >-
-              mysqlsh --javascript --cluster
+              mysqlsh --javascript
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
-                --execute 'cluster.addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
+                --execute 'dba.getCluster("{{ mysql_cluster_name }}").addInstance("{{ _mysql_instance }}", {recoveryMethod: "clone"})'
           vars:
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
             _mysql_msg: "The instance '{{ item }}:3306' was successfully added to the cluster"
@@ -113,10 +125,10 @@
         - name: Remove MySQL Cluster members
           ansible.builtin.command:
             cmd: >-
-              mysqlsh --javascript --cluster
+              mysqlsh --javascript
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
-                --execute 'cluster.removeInstance("{{ _mysql_instance }}")'
+                --execute 'dba.getCluster("{{ mysql_cluster_name }}").removeInstance("{{ _mysql_instance }}")'
           vars:
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
             _mysql_msg: "The instance '{{ item }}:3306' was successfully removed from the cluster"

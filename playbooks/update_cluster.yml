@@ -14,10 +14,10 @@
     - name: Query MySQL Cluster status
       ansible.builtin.expect:
         command: >
-          mysqlsh --cluster --javascript --password --save-passwords=always --quiet-start=2
+          mysqlsh --javascript --password --save-passwords=always --quiet-start=2
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
-            --execute 'print(cluster.status())'
+            --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
         responses:
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
@@ -61,10 +61,10 @@
     - name: Verify MySQL Cluster and member status
       ansible.builtin.expect:
         command: >
-          mysqlsh --cluster --javascript --password --save-passwords=always --quiet-start=2
+          mysqlsh --javascript --password --save-passwords=always --quiet-start=2
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
-            --execute 'print(cluster.status())'
+            --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
         responses:
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"

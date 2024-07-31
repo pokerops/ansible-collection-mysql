@@ -2,6 +2,7 @@
 - name: Deploy MySQL repository
   hosts: "_mysql_master:_mysql_slave:_mysql_alien:{{ mysql_router_group | default('mysql_router') }}"
   become: true
+  any_errors_fatal: true
   vars_files:
     - vars.yml
   tasks:
@@ -10,7 +11,6 @@
         that:
           - mysql_root_password is defined
           - mysql_clusteradmin_password is defined
-          - mysql_cluster_name is defined
         fail_msg: "mysql_cluster_name, mysql_root_password and mysql_clusteradmin_password must be defined"
 
     - name: Add host entries for cluster members

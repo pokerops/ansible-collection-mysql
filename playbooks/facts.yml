@@ -48,7 +48,7 @@
       vars:
         _service: "{{ mysql_server_daemon }}.service"
         _is_installed: "{{ _service in services }}"
-        _is_alien: "{{ (not _is_installed) or (_member_query is failed) or (_member_query.stdout_lines == 0) }}"
+        _is_alien: "{{ (not _is_installed) or (_member_query is failed) or (_member_query.stdout == '') }}"
         _is_member: "{{ not _is_alien }}"
         _is_slave: "{{ _is_member and (_slave_query.stdout | int > 0) }}"
         _is_master: "{{ _is_member and not _is_slave }}"
@@ -66,6 +66,8 @@
           - (mysql_bootstrap_allow | default(True) | bool) or _has_master
           - _unique_master | bool
           - _slaves_have_master | bool
+          - (mysql_cluster_name is defined) or (inventory_hostname in _mysqlrouters)
+          - not ((inventory_hostname in _mysqlrouters) and (inventory_hostname in _mysqlservers))
         fail_msg: "MySQL Cluster is in an inconsistent state"
       vars:
         _aliens: "{{ groups['_cluster_alien'] | default([]) }}"
@@ -75,6 +77,8 @@
         _has_master: "{{ _masters | length > 0  }}"
         _has_slaves: "{{ _slaves | length > 0 }}"
         _slaves_have_master: "{{ not _has_slaves or _has_master }}"
+        _mysqlrouters: "{{ groups[mysql_router_group | default('mysql_router')] | default([]) }}"
+        _mysqlservers: "{{ groups[mysql_cluster_group | default('mysql_cluster')] | default([]) }}"
       when: mysql_cluster_check | default(True)
 
     - name: Set hostgroup facts
