@@ -3,7 +3,7 @@
 [![Build Status](https://github.com/pokerops/ansible-collection-mysql/actions/workflows/molecule.yml/badge.svg)](https://github.com/pokerops/ansible-collection-mysql/actions/wofklows/molecule.yml)
 [![Ansible Galaxy](http://img.shields.io/badge/ansible--galaxy-pokerops.mysql-blue.svg)](https://galaxy.ansible.com/ui/repo/published/pokerops/mysql/)
 
-An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/mysql/) to install and manage [MySQL](https://www.mysql.com/) InnoDB clusters
+An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/pokerops/mysql/) to install and manage [MySQL](https://www.mysql.com/) InnoDB clusters
 
 ## ToDo
 
@@ -16,8 +16,8 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 
 | Hostgroup           |         Default | Description        |
 |:--------------------|----------------:|:-------------------|
-| mysql_cluster_group | 'mysql_cluster' | MySQL DBMS hosts   |
-| mysql_router_group  |   'mysql_router | MySQL router hosts |
+| mysql_cluster_group |   mysql_cluster | MySQL DBMS hosts   |
+| mysql_router_group  |    mysql_router | MySQL router hosts |
 
 ## Collection variables
 
@@ -43,8 +43,8 @@ Additionally parameters from Geerlinguy's MySQL [role](https://github.com/geerli
 
 ## Collection playbooks
 
-* nephelaiio.patroni.install: Install and bootstrap cluster
-* nephelaiio.patroni.update: Update cluster OS
+* pokerops.mysql.install: Install and bootstrap cluster
+* pokerops.mysql.update: Update cluster OS
 
 ## Testing
 

@@ -79,7 +79,7 @@
         _slaves_have_master: "{{ not _has_slaves or _has_master }}"
         _mysqlrouters: "{{ groups[mysql_router_group | default('mysql_router')] | default([]) }}"
         _mysqlservers: "{{ groups[mysql_cluster_group | default('mysql_cluster')] | default([]) }}"
-      when: mysql_cluster_check | default(True)
+      when: mysql_cluster_check | default(True) | bool
 
     - name: Set hostgroup facts
       ansible.builtin.set_fact:
@@ -115,4 +115,4 @@
     - name: Verify MySQL Cluster state
       ansible.builtin.assert:
         that: groups['_mysql_master'] | length == 1
-      when: mysql_cluster_check | default(True)
+      when: mysql_cluster_check | default(True) | bool
