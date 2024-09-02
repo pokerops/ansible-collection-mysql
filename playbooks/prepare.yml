@@ -11,7 +11,7 @@
         that:
           - mysql_root_password is defined
           - mysql_clusteradmin_password is defined
-        fail_msg: "mysql_cluster_name, mysql_root_password and mysql_clusteradmin_password must be defined"
+        fail_msg: "mysql_root_password and mysql_clusteradmin_password must be defined"
 
     - name: Add host entries for cluster members
       ansible.builtin.lineinfile:
