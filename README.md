@@ -1,6 +1,6 @@
 # Ansible Collection - pokerops.mysql
 
-[![Build Status](https://github.com/pokerops/ansible-collection-mysql/actions/workflows/molecule.yml/badge.svg)](https://github.com/pokerops/ansible-collection-mysql/actions/wofklows/molecule.yml)
+[![Build Status](https://github.com/pokerops/ansible-collection-mysql/actions/workflows/libvirt.yml/badge.svg)](https://github.com/pokerops/ansible-collection-mysql/actions/wofklows/libvirt.yml)
 [![Ansible Galaxy](http://img.shields.io/badge/ansible--galaxy-pokerops.mysql-blue.svg)](https://galaxy.ansible.com/ui/repo/published/pokerops/mysql/)
 
 An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/pokerops/mysql/) to install and manage [MySQL](https://www.mysql.com/) InnoDB clusters
