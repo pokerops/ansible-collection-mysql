@@ -12,8 +12,8 @@
           - mysql_root_password is defined
         fail_msg: "mysql_root_password"
       vars:
-        _mysqlrouter: "{{ mysql_router_group | default('mysql_router') }}"
-      when: not inventory_hostname in groups[_mysqlrouter]
+        _mysqlrouters: "{{ groups[mysql_router_group | default('mysql_router')] | default([]) }}"
+      when: not inventory_hostname in _mysqlrouters
 
     - name: Verify mysql router variable definitions
       ansible.builtin.assert:
