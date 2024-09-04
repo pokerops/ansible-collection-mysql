@@ -10,8 +10,16 @@
       ansible.builtin.assert:
         that:
           - mysql_root_password is defined
+        fail_msg: "mysql_root_password"
+      vars:
+        _mysqlrouter: "{{ mysql_router_group | default('mysql_router') }}"
+      when: not inventory_hostname in groups[_mysqlrouter]
+
+    - name: Verify mysql router variable definitions
+      ansible.builtin.assert:
+        that:
           - mysql_clusteradmin_password is defined
-        fail_msg: "mysql_root_password and mysql_clusteradmin_password must be defined"
+        fail_msg: "mysql_clusteradmin_password must be defined"
 
     - name: Add host entries for cluster members
       ansible.builtin.lineinfile:
