@@ -49,16 +49,16 @@ provisioner:
     verify: ../common/verify.yml
     destroy: ../common/destroy.yml
   inventory:
-    hosts:
+    group_vars:
       all:
-        vars:
-          libvirt_platforms: "{{ molecule_yml.platforms }}"
-          mysql_nolog: false
-          mysql_root_password: molecule
-          mysql_clusteradmin_password: admin
-          mysql_cluster_name: molecule
-          mysql_router_password: router
-          mysql_backup_configure: false
+        libvirt_platforms: "{{ molecule_yml.platforms }}"
+        mysql_nolog: false
+        mysql_clusteradmin_password: admin
+        mysql_cluster_name: molecule
+        mysql_router_password: router
+        mysql_backup_configure: false
+      mysql_cluster:
+        mysql_root_password: molecule
 verifier:
   name: ansible
 scenario:

@@ -84,7 +84,6 @@ provisioner:
       all:
         libvirt_platforms: "{{ molecule_yml.platforms }}"
         mysql_nolog: false
-        mysql_root_password: molecule
         mysql_clusteradmin_password: admin
         mysql_router_password: router
         mysql_clusterset_name: clusterset
@@ -93,6 +92,8 @@ provisioner:
         mysql_cluster_name: primary
       mysql_cluster_secondary:
         mysql_cluster_name: secondary
+      mysql_cluster:
+        mysql_root_password: molecule
 verifier:
   name: ansible
 scenario:
