@@ -6,16 +6,16 @@
   vars_files:
     - vars.yml
   tasks:
-    - name: Verify mysql variable definitions
+    - name: Verify mysql cluster definitions
       ansible.builtin.assert:
         that:
           - mysql_root_password is defined
-        fail_msg: "mysql_root_password"
+        fail_msg: "mysql_root_password must be defined"
       vars:
         _mysqlrouters: "{{ groups[mysql_router_group | default('mysql_router')] | default([]) }}"
       when: not inventory_hostname in _mysqlrouters
 
-    - name: Verify mysql router variable definitions
+    - name: Verify mysql variable definitions
       ansible.builtin.assert:
         that:
           - mysql_clusteradmin_password is defined
