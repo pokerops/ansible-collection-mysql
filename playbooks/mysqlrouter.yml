@@ -17,7 +17,6 @@
       vars:
         _mysqlrouters: "{{ groups[mysql_router_group | default('mysql_router')] | default([]) }}"
         _mysqlservers: "{{ groups[mysql_cluster_group | default('mysql_cluster')] | default([]) }}"
-      when: mysql_cluster_check | default(True) | bool
 
     - name: Remove conflicting host entries
       ansible.builtin.lineinfile:
