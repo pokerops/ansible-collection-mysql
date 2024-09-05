@@ -43,7 +43,7 @@ provisioner:
     verify: ../common/verify.yml
     destroy: ../common/destroy.yml
   inventory:
-    hosts:
+    group_vars:
       all:
         vars:
           libvirt_platforms: "{{ molecule_yml.platforms }}"
