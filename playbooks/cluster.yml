@@ -137,6 +137,7 @@
           loop: "{{ _mysql_cluster_member_del }}"
 
     - name: Manage MySQL Cluster DBs and users
+      become: true
       block:
         - name: Include MySQL variables
           ansible.builtin.include_role:
