@@ -58,15 +58,15 @@ provisioner:
         mysql_cluster_name: molecule
         mysql_router_password: router
         mysql_backup_configure: false
-      mysql_users:
-        - name: molecule
-          host: "%"
-          priv: "*.*:ALL"
-          password: molecule
-      mysql_databases:
-        - name: molecule
-          collation: utf8_general_ci
-          encoding: utf8
+        mysql_users:
+          - name: molecule
+            host: "%"
+            priv: "*.*:ALL"
+            password: molecule
+        mysql_databases:
+          - name: molecule
+            collation: utf8_general_ci
+            encoding: utf8
       mysql_cluster:
         mysql_root_password: molecule
 verifier:
