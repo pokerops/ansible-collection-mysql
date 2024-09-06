@@ -46,7 +46,8 @@
         _cluster_master: "{{ _is_master | bool }}"
         _cluster_slave: "{{ _is_slave | bool }}"
       vars:
-        _service: "{{ _mysql_server_daemon }}.service"
+        _service_name: "{{ _mysql_server_daemon }}.service"
+        _service: "{{ _service_name if not (_mysql_server_daemon is search('.service$')) else _mysql_server_daemon }}"
         _is_installed: "{{ _service in services }}"
         _is_alien: "{{ (not _is_installed) or (_member_query is failed) or (_member_query.stdout == '') }}"
         _is_member: "{{ not _is_alien }}"
