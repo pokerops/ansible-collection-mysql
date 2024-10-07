@@ -83,7 +83,6 @@
       delegate_to: localhost
       delegate_facts: true
 
-
 - name: Verify ClusterSet cluster assignments
   hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
   vars_files:
@@ -99,7 +98,6 @@
         _expected: "{{ mysql_cluster_name }}"
         _actual: "{{ _clusterset_members[inventory_hostname] }}"
       when: inventory_hostname in _clusterset_members
-
 
 - name: Manage ClusterSet replica MySQL Clusters
   hosts: "_mysql_master"

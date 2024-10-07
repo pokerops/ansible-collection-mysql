@@ -4,9 +4,8 @@
   vars:
     mysql_cluster_group: mysql_cluster_down
 
-
 - name: Query cluster state
-  hosts: _mysql_master
+  hosts: "_mysql_master"
   tasks:
     - name: Query MySQL Cluster membership
       community.mysql.mysql_query:
@@ -37,7 +36,6 @@
           - (_mysql_cluster_members | length) == (_mysql_cluster_scaledown | length)
           - _mysql_cluster_members | difference(_mysql_cluster_scaledown) | length == 0
           - _mysql_cluster_scaledown | difference(_mysql_cluster_members) | length == 0
-
 
 - name: Import verification playbook
   ansible.builtin.import_playbook: ./verify.yml

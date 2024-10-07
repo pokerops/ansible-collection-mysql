@@ -7,7 +7,7 @@
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:
-        _mysql_cmd: 'SELECT @@global.super_read_only AS sro'
+        _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       register: _slave_query
 
     - name: Load sakila DB
@@ -95,13 +95,11 @@
             name: mysql
             state: started
 
-
 - name: Import facts playbook
   ansible.builtin.import_playbook: pokerops.mysql.facts
 
-
 - name: Drop cluster data
-  hosts: _mysql_master
+  hosts: "_mysql_master"
   become: true
   tasks:
     - name: List databases
@@ -135,9 +133,8 @@
       ansible.builtin.assert:
         that: _member_query.query_result[0] | selectattr('Database', 'equalto', 'sakila') | length == 0
 
-
 - name: Restore mysqldump backup
-  hosts: _mysql_master
+  hosts: "_mysql_master"
   become: true
   tasks:
     - name: List xbstream backup files

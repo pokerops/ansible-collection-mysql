@@ -1,6 +1,16 @@
 ---
+- name: Load MySQL Cluster facts
+  ansible.builtin.import_playbook: pokerops.mysql.facts
+  vars:
+    mysql_groupset: deploy
+
 - name: Configure MySQL Cluster
-  hosts: "_mysql_master"
+  hosts: "_mysql_deploy_master"
+  vars:
+    _mysql_deploy_hostgroups:
+      - _mysql_deploy_master
+      - _mysql_deploy_alien
+      - _mysql_deploy_slave
   vars_files:
     - vars.yml
   tasks:
@@ -17,7 +27,7 @@
         that: _cluster_groups | length == 1
         fail_msg: "A single cluster name is permitted for standalone clusters, found [{{ _cluster_groups | join(', ') }}]"
       vars:
-        _cluster_groups: "{{ groups.keys() | select('match', '^_mysql_cluster_.*') }}"
+        _cluster_groups: "{{ groups.keys() | select('match', '^_mysql_deploy_all.*') }}"
       when: mysql_clusterset_name is not defined
 
     - name: Set MySQL Cluster facts
@@ -26,9 +36,9 @@
         _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
         _mysql_cluster_exclude: "{{ _cluster_exclude }}"
       vars:
-        _role_groups: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) }}"
-        _cluster_groups: "{{ groups.keys() | select('match', '^_mysql_cluster_.*') }}"
-        _cluster_groups_primary: "_mysql_cluster_{{ mysql_cluster_name }}"
+        _role_groups: "{{ _mysql_deploy_hostgroups | intersect(groups.keys()) }}"
+        _cluster_groups: "{{ groups.keys() | select('match', '^_mysql_cluster_all_.*') }}"
+        _cluster_groups_primary: "_mysql_cluster_all_{{ mysql_cluster_name }}"
         _cluster_groups_standby: "{{ _cluster_groups | reject('equalto', _cluster_groups_primary) }}"
         _cluster_exclude: "{{ _cluster_groups_standby | map('extract', groups) | flatten | unique }}"
 

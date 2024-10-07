@@ -1,6 +1,11 @@
 ---
+- name: Load MySQL Cluster facts
+  ansible.builtin.import_playbook: pokerops.mysql.facts
+  vars:
+    mysql_groupset: install
+
 - name: Query MySQL package versions on master nodes
-  hosts: "_mysql_master"
+  hosts: "_mysql_install_master"
   vars_files:
     - vars.yml
   tasks:
@@ -58,9 +63,8 @@
       delegate_to: "{{ item }}"
       delegate_facts: true
 
-
 - name: Deploy MySQL packages on alien nodes
-  hosts: "_mysql_alien"
+  hosts: "_mysql_install_alien"
   become: true
   vars_files:
     - vars.yml
@@ -71,9 +75,8 @@
       vars:
         mysql_manage_security: true
 
-
 - name: Deploy MySQL packages on slave nodes
-  hosts: "_mysql_slave"
+  hosts: "_mysql_install_slave"
   become: true
   vars_files:
     - vars.yml
@@ -85,9 +88,8 @@
         mysql_root_password_update: false
         mysql_manage_security: false
 
-
 - name: Deploy MySQL packages on master nodes
-  hosts: "_mysql_master"
+  hosts: "_mysql_install_master"
   become: true
   vars_files:
     - vars.yml
@@ -110,9 +112,8 @@
       delegate_to: "{{ item }}"
       delegate_facts: true
 
-
 - name: Distribute MySQL my.cnf to slave nodes
-  hosts: "_mysql_slave"
+  hosts: "_mysql_install_slave"
   become: true
   vars_files:
     - vars.yml
@@ -123,9 +124,13 @@
         content: "{{ mysql_config_mycnf }}"
         mode: "u=rw,go="
 
-
 - name: Configure MySQL shell
-  hosts: "_mysql_master:_mysql_slave:_mysql_alien"
+  hosts: "_mysql_install_master:_mysql_install_slave:_mysql_install_alien"
+  vars:
+    _mysql_cluster_hostgroups:
+      - _mysql_install_master
+      - _mysql_install_alien
+      - _mysql_install_slave
   vars_files:
     - vars.yml
   tasks:
@@ -155,7 +160,7 @@
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
-      loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
+      loop: "{{ _mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
 
@@ -170,6 +175,6 @@
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
-      loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
+      loop: "{{ _mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register

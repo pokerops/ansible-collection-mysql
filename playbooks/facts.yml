@@ -2,6 +2,17 @@
 - name: Query MySQL Cluster status
   hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
   become: true
+  vars:
+    _mysql_groupset: "{{ (mysql_groupset | default('cluster')) }}"
+    _mysql_group_prefix: "_mysql_{{ _mysql_groupset }}"
+    _mysql_cluster_prefix: "_mysql_{{ _mysql_groupset }}_all"
+    _mysql_group_cluster: "{{ _mysql_cluster_prefix }}_{{ mysql_cluster_name }}"
+    _mysql_group_master: "{{ _mysql_group_prefix }}_master"
+    _mysql_group_slave: "{{ _mysql_group_prefix }}_slave"
+    _mysql_group_alien: "{{ _mysql_group_prefix }}_alien"
+    _mysql_role_alien: "{{ _mysql_group_prefix }}_role_alien"
+    _mysql_role_master: "{{ _mysql_group_prefix }}_role_master"
+    _mysql_role_slave: "{{ _mysql_group_prefix }}_role_slave"
   vars_files:
     - vars.yml
   tasks:
@@ -16,7 +27,7 @@
 
     - name: Query node cluster membership
       ansible.builtin.command:
-        cmd: "mysql -h '127.0.0.1' -sN -e \"{{ _mysql_cmd }}\""
+        cmd: 'mysql -h ''127.0.0.1'' -sN -e "{{ _mysql_cmd }}"'
       vars:
         _mysql_table: "performance_schema.replication_group_members"
         _mysql_cmd: "SELECT MEMBER_HOST FROM {{ _mysql_table }} WHERE member_host='{{ inventory_hostname }}';"
@@ -31,7 +42,7 @@
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:
-        _mysql_cmd: 'SELECT @@global.super_read_only AS sro'
+        _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       ignore_errors: true
       register: _slave_query
 
@@ -56,9 +67,9 @@
 
     - name: Group cluster members
       ansible.builtin.group_by:
-        key: "_cluster_{{ 'alien' if _cluster_alien else _status }}"
+        key: "{{ _mysql_role_alien if _cluster_alien else _mysql_role_member }}"
       vars:
-        _status: "{{ 'master' if _cluster_master else 'slave' }}"
+        _mysql_role_member: "{{ _mysql_role_master if _cluster_master else _mysql_role_slave }}"
       changed_when: false
 
     - name: Verify cluster status
@@ -71,9 +82,9 @@
           - not ((inventory_hostname in _mysqlrouters) and (inventory_hostname in _mysqlservers))
         fail_msg: "MySQL Cluster is in an inconsistent state"
       vars:
-        _aliens: "{{ groups['_cluster_alien'] | default([]) }}"
-        _masters: "{{ groups['_cluster_master'] | default([]) }}"
-        _slaves: "{{ groups['_cluster_slave'] | default([]) }}"
+        _aliens: "{{ groups[_mysql_role_alien] | default([]) }}"
+        _masters: "{{ groups[_mysql_role_master] | default([]) }}"
+        _slaves: "{{ groups[_mysql_role_slave] | default([]) }}"
         _unique_master: "{{ _masters | length < 2 }}"
         _has_master: "{{ _masters | length > 0  }}"
         _has_slaves: "{{ _slaves | length > 0 }}"
@@ -88,32 +99,32 @@
         _hosts_masters: "{{ _masters + _bootstrap }}"
         _hosts_slaves: "{{ _slaves | difference(_bootstrap) }}"
       vars:
-        _aliens: "{{ groups['_cluster_alien'] | default([]) }}"
-        _masters: "{{ groups['_cluster_master'] | default([]) }}"
-        _slaves: "{{ groups['_cluster_slave'] | default([]) }}"
+        _aliens: "{{ groups[_mysql_role_alien] | default([]) }}"
+        _masters: "{{ groups[_mysql_role_master] | default([]) }}"
+        _slaves: "{{ groups[_mysql_role_slave] | default([]) }}"
         _bootstrap: "{{ [] if (_masters | length > 0) else ([_aliens | first]) }}"
 
     - name: Debug host cluster role
       ansible.builtin.debug:
-        msg: "Adding host to {{ 'master' if _master else ('slave' if _slave else 'alien') }} role"
+        msg: "Adding host to {{ _mysql_group_master if _master else _mysql_group_slave }} role group"
       vars:
         _master: "{{ inventory_hostname in _hosts_masters }}"
         _slave: "{{ inventory_hostname  in _hosts_slaves }}"
 
     - name: Create cluster role groups
       ansible.builtin.group_by:
-        key: "_mysql_{{ 'master' if _master else ('slave' if _slave else 'alien') }}"
+        key: "{{ _mysql_group_master if _master else _mysql_group_slave  if _slave else _mysql_group_alien }}"
       vars:
         _master: "{{ inventory_hostname in _hosts_masters }}"
         _slave: "{{ inventory_hostname  in _hosts_slaves }}"
       changed_when: false
 
-    - name: Create cluster name groups
+    - name: Create cluster name group
       ansible.builtin.group_by:
-        key: "_mysql_cluster_{{ mysql_cluster_name }}"
+        key: "{{ _mysql_group_cluster }}"
       changed_when: false
 
     - name: Verify MySQL Cluster state
       ansible.builtin.assert:
-        that: groups['_mysql_master'] | length == 1
+        that: groups[_mysql_group_master] | length == 1
       when: mysql_cluster_check | default(True) | bool
