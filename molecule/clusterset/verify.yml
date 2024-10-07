@@ -2,7 +2,6 @@
 - name: Load MySQL Cluster facts
   ansible.builtin.import_playbook: pokerops.mysql.facts
 
-
 - name: Verify MySQL Cluster services
   hosts: "{{ mysql_cluster_group }}"
   any_errors_fatal: true

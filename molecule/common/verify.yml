@@ -54,7 +54,6 @@
       vars:
         _cluster_member_status: "{{ _mysql_cluster_status.defaultReplicaSet.topology.values() | map(attribute='status') }}"
 
-
 - name: Verify MySQL Cluster services
   hosts: mysql_router
   vars:

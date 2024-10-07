@@ -4,12 +4,10 @@
   vars:
     mysql_cluster_group: mysql_cluster_scaledown
 
-
 - name: Scale down ClusterSet members
   ansible.builtin.import_playbook: ../common/install.yml
   vars:
     mysql_cluster_group: mysql_cluster_scaledown
-
 
 - name: Run verification play for scaledown clusterset
   ansible.builtin.import_playbook: ./verify.yml
@@ -19,12 +17,10 @@
       - primary
       - secondary
 
-
 - name: Drop ClusterSet secondary cluster
   ansible.builtin.import_playbook: ../common/install.yml
   vars:
     mysql_cluster_group: mysql_cluster_primary
-
 
 - name: Run verification play ClusterSet cluster removal
   ansible.builtin.import_playbook: ./verify.yml

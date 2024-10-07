@@ -1,6 +1,11 @@
 ---
+- name: Load MySQL Cluster facts
+  ansible.builtin.import_playbook: pokerops.mysql.facts
+  vars:
+    mysql_groupset: clusterset
+
 - name: Manage MySQL ClusterSet
-  hosts: "_mysql_master"
+  hosts: "_mysql_clusterset_master"
   vars:
     _domain_name: domainName
   vars_files:
@@ -100,7 +105,7 @@
       when: inventory_hostname in _clusterset_members
 
 - name: Manage ClusterSet replica MySQL Clusters
-  hosts: "_mysql_master"
+  hosts: "_mysql_clusterset_master"
   vars_files:
     - vars.yml
   any_errors_fatal: true
