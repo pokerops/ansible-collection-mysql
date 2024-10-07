@@ -4,7 +4,7 @@
   serial: "{{ mysql_update_serial | default(1) }}"
   become: true
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   vars:
     update_reboot: false
     update_cache_valid_time: 1

@@ -16,6 +16,21 @@
     - name: Deploy MySQL apt repository
       when: mysql_apt_config not in packages
       block:
+        - name: Configure MySQL apt repository
+          ansible.builtin.debconf:
+            name: mysql-apt-config
+            question: "{{ item.key }}"
+            value: "{{ item.value }}"
+            vtype: select
+          vars:
+            _settings:
+              select-preview: Disabled
+              select-tools: Enabled
+              select-server: mysql-cluster-{{ mysql_release }}
+          loop_control:
+            label: "{{ item.key }}"
+          loop: "{{ _settings | dict2items }}"
+
         - name: Download MySQL apt repository
           ansible.builtin.get_url:
             url: "{{ mysql_repo_deb }}"

@@ -14,7 +14,7 @@
     _mysql_role_master: "{{ _mysql_group_prefix }}_role_master"
     _mysql_role_slave: "{{ _mysql_group_prefix }}_role_slave"
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Gather service facts
       ansible.builtin.service_facts:

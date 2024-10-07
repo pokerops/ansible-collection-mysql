@@ -2,4 +2,4 @@
 mysql_apt_config: mysql-apt-config
 mysql_repo_deb: "https://dev.mysql.com/get/{{ mysql_apt_config }}_0.8.30-1_all.deb"
 mysql_pgp_keyserver: BCA43417C3B485DD128EC6D4B7B3B788A8D3785C
-mysql_release: '8.0'
+mysql_release: "8.0"

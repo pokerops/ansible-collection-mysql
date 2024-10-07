@@ -7,7 +7,7 @@
 - name: Query MySQL package versions on master nodes
   hosts: "_mysql_install_master"
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Query installed packages
       ansible.builtin.package_facts:
@@ -67,7 +67,7 @@
   hosts: "_mysql_install_alien"
   become: true
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Deploy MySQL service
       ansible.builtin.include_role:
@@ -79,7 +79,7 @@
   hosts: "_mysql_install_slave"
   become: true
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Deploy MySQL service
       ansible.builtin.include_role:
@@ -92,7 +92,7 @@
   hosts: "_mysql_install_master"
   become: true
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Deploy MySQL service
       ansible.builtin.include_role:
@@ -116,7 +116,7 @@
   hosts: "_mysql_install_slave"
   become: true
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Write my.cnf configuration
       ansible.builtin.copy:
@@ -132,7 +132,7 @@
       - _mysql_install_alien
       - _mysql_install_slave
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Create user config directory for MySQL shell
       ansible.builtin.file:

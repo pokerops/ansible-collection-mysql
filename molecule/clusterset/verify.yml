@@ -1,6 +1,8 @@
 ---
 - name: Load MySQL Cluster facts
   ansible.builtin.import_playbook: pokerops.mysql.facts
+  vars:
+    mysql_groupset: verify
 
 - name: Verify MySQL Cluster services
   hosts: "{{ mysql_cluster_group }}"
@@ -8,7 +10,7 @@
   tasks:
     - name: End play for master host
       ansible.builtin.meta: end_host
-      when: inventory_hostname in groups['_mysql_master']
+      when: inventory_hostname in groups['_mysql_clusterset_master']
 
     - name: Verify MySQL Clusterset status
       block:

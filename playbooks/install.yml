@@ -1,20 +1,20 @@
 ---
-- name: Prepare MySQL nodes
-  ansible.builtin.import_playbook: pokerops.mysql.prepare
-
-- name: Deploy MySQL Cluster
-  ansible.builtin.import_playbook: pokerops.mysql.mysql
-
-- name: Deploy MySQL Cluster
-  ansible.builtin.import_playbook: pokerops.mysql.cluster
-
-- name: Configure MySQL backups
-  ansible.builtin.import_playbook: pokerops.mysql.backups
-  when: mysql_backup_configure | default(True) | bool
-
-- name: Deploy MySQL Router
-  ansible.builtin.import_playbook: pokerops.mysql.mysqlrouter
-
+# - name: Prepare MySQL nodes
+#   ansible.builtin.import_playbook: pokerops.mysql.prepare
+#
+# - name: Deploy MySQL Cluster
+#   ansible.builtin.import_playbook: pokerops.mysql.mysql
+#
+# - name: Deploy MySQL Cluster
+#   ansible.builtin.import_playbook: pokerops.mysql.cluster
+#
+# - name: Configure MySQL backups
+#   ansible.builtin.import_playbook: pokerops.mysql.backups
+#   when: mysql_backup_configure | default(True) | bool
+#
 - name: Configure MySQL ClusterSet
   ansible.builtin.import_playbook: pokerops.mysql.clusterset
   when: mysql_clusterset_name is defined
+
+- name: Deploy MySQL Router
+  ansible.builtin.import_playbook: pokerops.mysql.mysqlrouter

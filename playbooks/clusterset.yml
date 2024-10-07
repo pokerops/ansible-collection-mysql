@@ -9,7 +9,7 @@
   vars:
     _domain_name: domainName
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Verify MySQL Cluster status
       ansible.builtin.assert:
@@ -89,9 +89,9 @@
       delegate_facts: true
 
 - name: Verify ClusterSet cluster assignments
-  hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
+  hosts: "_mysql_clusterset_master:_mysql_clusterset_slave:_mysql_clusterset_alien"
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   any_errors_fatal: true
   tasks:
     - name: Verify MySQL ClusterSet assignments
@@ -107,7 +107,7 @@
 - name: Manage ClusterSet replica MySQL Clusters
   hosts: "_mysql_clusterset_master"
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   any_errors_fatal: true
   tasks:
     - name: Set MySQL ClusterSet facts
