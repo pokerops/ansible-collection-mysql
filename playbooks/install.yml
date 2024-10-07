@@ -12,9 +12,9 @@
   ansible.builtin.import_playbook: pokerops.mysql.backups
   when: mysql_backup_configure | default(True) | bool
 
-- name: Deploy MySQL Router
-  ansible.builtin.import_playbook: pokerops.mysql.mysqlrouter
-
 - name: Configure MySQL ClusterSet
   ansible.builtin.import_playbook: pokerops.mysql.clusterset
   when: mysql_clusterset_name is defined
+
+- name: Deploy MySQL Router
+  ansible.clustersetbuiltin.import_playbook: pokerops.mysql.mysqlrouter
