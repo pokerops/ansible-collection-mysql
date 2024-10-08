@@ -5,14 +5,15 @@
     mysql_groupset: deploy
 
 - name: Configure MySQL Cluster
-  hosts: "_mysql_deploy_master"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_deploy_master"
   vars:
     _mysql_deploy_hostgroups:
-      - _mysql_deploy_master
-      - _mysql_deploy_alien
-      - _mysql_deploy_slave
+      - "{{ mysql_group_prefix | default('_mysql') }}_deploy_master"
+      - "{{ mysql_group_prefix | default('_mysql') }}_deploy_slave"
+      - "{{ mysql_group_prefix | default('_mysql') }}_deploy_alien"
+    _mysql_all_hostgroup_prefix: "{{ mysql_group_prefix | default('_mysql') }}_deploy_all"
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Query MySQL Cluster membership
       community.mysql.mysql_query:
@@ -27,20 +28,21 @@
         that: _cluster_groups | length == 1
         fail_msg: "A single cluster name is permitted for standalone clusters, found [{{ _cluster_groups | join(', ') }}]"
       vars:
-        _cluster_groups: "{{ groups.keys() | select('match', '^_mysql_deploy_all.*') }}"
+        _cluster_groups: "{{ groups.keys() | select('match', '^' + _mysql_all_hostgroup_prefix + '_.*') }}"
       when: mysql_clusterset_name is not defined
 
     - name: Set MySQL Cluster facts
       ansible.builtin.set_fact:
-        _mysql_cluster_targets: "{{ _role_groups | map('extract', groups) | flatten | unique | difference(_cluster_exclude) }}"
+        _mysql_cluster_targets: "{{ _role_groups | map('extract', groups) | flatten | unique | difference(_members_exclude) }}"
         _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
-        _mysql_cluster_exclude: "{{ _cluster_exclude }}"
+        _mysql_cluster_exclude: "{{ _members_exclude }}"
+        _mysql_cluster_groups: "{{ _cluster_groups_standby }}"
       vars:
         _role_groups: "{{ _mysql_deploy_hostgroups | intersect(groups.keys()) }}"
-        _cluster_groups: "{{ groups.keys() | select('match', '^_mysql_deploy_all_.*') }}"
-        _cluster_groups_primary: "_mysql_deploy_all_{{ mysql_cluster_name }}"
+        _cluster_groups: "{{ groups.keys() | select('match', '^' + _mysql_all_hostgroup_prefix + '_.*') }}"
+        _cluster_groups_primary: "{{ _mysql_all_hostgroup_prefix }}_{{ mysql_cluster_name }}"
         _cluster_groups_standby: "{{ _cluster_groups | reject('equalto', _cluster_groups_primary) }}"
-        _cluster_exclude: "{{ _cluster_groups_standby | map('extract', groups) | flatten | unique }}"
+        _members_exclude: "{{ _cluster_groups_standby | map('extract', groups) | flatten | unique }}"
 
     - debug:
         msg: "{{ _mysql_cluster_targets }}"
@@ -98,7 +100,7 @@
     - name: Manage MySQL Cluster state
       when: _mysql_cluster_members | length > 0
       block:
-        - name: Add MySQL Cluster members
+        - name: Query MySQL Cluster status
           ansible.builtin.command:
             cmd: >-
               mysqlsh --javascript

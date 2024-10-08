@@ -1,16 +1,18 @@
 ---
 - name: Load MySQL Cluster facts
   ansible.builtin.import_playbook: pokerops.mysql.facts
+  vars:
+    mysql_groupset: update
 
 - name: Update MySQL Cluster slaves
   ansible.builtin.import_playbook: pokerops.mysql.update_cluster
   vars:
-    mysql_update_group: "_mysql_slave"
+    mysql_update_group: "_mysql_update_slave"
 
 - name: Update MySQL Cluster master
   ansible.builtin.import_playbook: pokerops.mysql.update_cluster
   vars:
-    mysql_update_group: "_mysql_master"
+    mysql_update_group: "_mysql_update_master"
 
 - name: Update MySQL Cluster routers
   ansible.builtin.import_playbook: pokerops.mysql.update_router

@@ -97,9 +97,11 @@
 
 - name: Import facts playbook
   ansible.builtin.import_playbook: pokerops.mysql.facts
+  vars:
+    mysql_groupset: verify
 
 - name: Drop cluster data
-  hosts: "_mysql_master"
+  hosts: "_mysql_verify_master"
   become: true
   tasks:
     - name: List databases
