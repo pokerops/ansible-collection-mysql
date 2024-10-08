@@ -44,17 +44,6 @@
         _cluster_groups_standby: "{{ _cluster_groups | reject('equalto', _cluster_groups_primary) }}"
         _members_exclude: "{{ _cluster_groups_standby | map('extract', groups) | flatten | unique }}"
 
-    - debug:
-        msg: "{{ _mysql_cluster_targets }}"
-
-    - debug:
-        msg: "{{ _mysql_cluster_members }}"
-
-    - debug:
-        msg: "{{ _mysql_cluster_exclude }}"
-
-    - fail:
-
     - name: Initialize MySQL Cluster
       when: _mysql_cluster_members | length == 0
       block:
