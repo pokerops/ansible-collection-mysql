@@ -90,8 +90,12 @@
             that:
               - (mysql_cluster_names | difference(mysql_target_clusters)) | length == 0
               - (mysql_target_clusters | difference(mysql_cluster_names)) | length == 0
+            fail_msg: |-
+              mysql_cluster_names: {{ mysql_cluster_names }}
+              mysql_target_clusters: {{ mysql_target_clusters }}
           vars:
             mysql_cluster_names: "{{ mysql_clusterset_status.clusters.keys() }}"
-            mysql_inventory_groups: "{{ groups.keys() | select('match', '^_mysql_verify_all_.*') }}"
-            mysql_inventory_clusters: "{{ mysql_inventory_groups | map('regex_replace', '^_mysql_verify_all_', '')  }}"
+            mysql_all_hostgroup_prefix: "{{ mysql_group_prefix | default('_mysql') }}_verify_all"
+            mysql_inventory_groups: "{{ groups.keys() | select('match', '^' + mysql_all_hostgroup_prefix + '_.*') }}"
+            mysql_inventory_clusters: "{{ mysql_inventory_groups | map('regex_replace', '^' + mysql_all_hostgroup_prefix + '_', '')  }}"
             mysql_target_clusters: "{{ mysql_verification_clusters | default(mysql_inventory_clusters) }}"
