@@ -5,7 +5,7 @@
     mysql_groupset: clusterset
 
 - name: Manage MySQL ClusterSet
-  hosts: "_mysql_clusterset_master"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_clusterset_master"
   vars:
     _domain_name: domainName
   vars_files:
@@ -89,7 +89,10 @@
       delegate_facts: true
 
 - name: Verify ClusterSet cluster assignments
-  hosts: "_mysql_clusterset_master:_mysql_clusterset_slave:_mysql_clusterset_alien"
+  hosts:
+    - "{{ mysql_group_prefix | default('_mysql') }}_clusterset_master"
+    - "{{ mysql_group_prefix | default('_mysql') }}_clusterset_slave"
+    - "{{ mysql_group_prefix | default('_mysql') }}_clusterset_alien"
   vars_files:
     - ../vars/default.yml
   any_errors_fatal: true
@@ -105,7 +108,7 @@
       when: inventory_hostname in _clusterset_members
 
 - name: Manage ClusterSet replica MySQL Clusters
-  hosts: "_mysql_clusterset_master"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_clusterset_master"
   vars_files:
     - ../vars/default.yml
   any_errors_fatal: true

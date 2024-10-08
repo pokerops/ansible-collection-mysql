@@ -5,7 +5,7 @@
     mysql_groupset: install
 
 - name: Query MySQL package versions on master nodes
-  hosts: "_mysql_install_master"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_master"
   vars_files:
     - ../vars/default.yml
   tasks:
@@ -64,7 +64,7 @@
       delegate_facts: true
 
 - name: Deploy MySQL packages on alien nodes
-  hosts: "_mysql_install_alien"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_alien"
   become: true
   vars_files:
     - ../vars/default.yml
@@ -76,7 +76,7 @@
         mysql_manage_security: true
 
 - name: Deploy MySQL packages on slave nodes
-  hosts: "_mysql_install_slave"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_slave"
   become: true
   vars_files:
     - ../vars/default.yml
@@ -89,7 +89,7 @@
         mysql_manage_security: false
 
 - name: Deploy MySQL packages on master nodes
-  hosts: "_mysql_install_master"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_master"
   become: true
   vars_files:
     - ../vars/default.yml
@@ -113,7 +113,7 @@
       delegate_facts: true
 
 - name: Distribute MySQL my.cnf to slave nodes
-  hosts: "_mysql_install_slave"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_slave"
   become: true
   vars_files:
     - ../vars/default.yml
@@ -125,12 +125,15 @@
         mode: "u=rw,go="
 
 - name: Configure MySQL shell
-  hosts: "_mysql_install_master:_mysql_install_slave:_mysql_install_alien"
+  hosts:
+    - "{{ mysql_group_prefix | default('_mysql') }}_install_master"
+    - "{{ mysql_group_prefix | default('_mysql') }}_install_slave"
+    - "{{ mysql_group_prefix | default('_mysql') }}_install_alien"
   vars:
     _mysql_cluster_hostgroups:
-      - _mysql_install_master
-      - _mysql_install_alien
-      - _mysql_install_slave
+      - "{{ mysql_group_prefix | default('_mysql') }}_install_master"
+      - "{{ mysql_group_prefix | default('_mysql') }}_install_slave"
+      - "{{ mysql_group_prefix | default('_mysql') }}_install_alien"
   vars_files:
     - ../vars/default.yml
   tasks:
