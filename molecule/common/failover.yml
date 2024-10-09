@@ -9,7 +9,7 @@
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:
-        _mysql_cmd: 'SELECT @@global.super_read_only AS sro'
+        _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       register: _slave_query
 
     - name: Stop play for slave nodes
@@ -37,7 +37,6 @@
         name: "{{ mysql_server_daemon }}"
         state: started
 
-
 - name: Verify MySQL Cluster failover
   hosts: mysql_cluster
   become: true
@@ -46,7 +45,7 @@
   tasks:
     - name: Query MySQL Cluster status
       ansible.builtin.command:
-        cmd: "mysql -h '127.0.0.1' -sN -e \"{{ _mysql_cmd }}\""
+        cmd: 'mysql -h ''127.0.0.1'' -sN -e "{{ _mysql_cmd }}"'
       vars:
         _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       register: _slave_query
@@ -59,13 +58,11 @@
       ansible.builtin.assert:
         that: mysql_cluster_master != inventory_hostname
 
-
 - name: Reset cluster root password
   ansible.builtin.import_playbook: pokerops.mysql.install
   vars:
     mysql_root_password: supersecret
     mysql_clusteradmin_password: notsosecret
-
 
 - name: Verify MySQL Cluster password changes
   hosts: mysql_cluster
@@ -74,7 +71,7 @@
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:
-        _mysql_cmd: 'SELECT @@global.super_read_only AS sro'
+        _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       become: true
       register: _slave_cli_query
 

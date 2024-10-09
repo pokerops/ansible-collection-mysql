@@ -1,8 +1,13 @@
 ---
+- name: Load MySQL Cluster facts
+  ansible.builtin.import_playbook: pokerops.mysql.facts
+  vars:
+    mysql_groupset: install
+
 - name: Query MySQL package versions on master nodes
-  hosts: "_mysql_master"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_master"
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Query installed packages
       ansible.builtin.package_facts:
@@ -58,12 +63,11 @@
       delegate_to: "{{ item }}"
       delegate_facts: true
 
-
 - name: Deploy MySQL packages on alien nodes
-  hosts: "_mysql_alien"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_alien"
   become: true
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Deploy MySQL service
       ansible.builtin.include_role:
@@ -71,12 +75,11 @@
       vars:
         mysql_manage_security: true
 
-
 - name: Deploy MySQL packages on slave nodes
-  hosts: "_mysql_slave"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_slave"
   become: true
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Deploy MySQL service
       ansible.builtin.include_role:
@@ -85,12 +88,11 @@
         mysql_root_password_update: false
         mysql_manage_security: false
 
-
 - name: Deploy MySQL packages on master nodes
-  hosts: "_mysql_master"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_master"
   become: true
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Deploy MySQL service
       ansible.builtin.include_role:
@@ -110,12 +112,11 @@
       delegate_to: "{{ item }}"
       delegate_facts: true
 
-
 - name: Distribute MySQL my.cnf to slave nodes
-  hosts: "_mysql_slave"
+  hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_slave"
   become: true
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Write my.cnf configuration
       ansible.builtin.copy:
@@ -123,11 +124,18 @@
         content: "{{ mysql_config_mycnf }}"
         mode: "u=rw,go="
 
-
 - name: Configure MySQL shell
-  hosts: "_mysql_master:_mysql_slave:_mysql_alien"
+  hosts:
+    - "{{ mysql_group_prefix | default('_mysql') }}_install_master"
+    - "{{ mysql_group_prefix | default('_mysql') }}_install_slave"
+    - "{{ mysql_group_prefix | default('_mysql') }}_install_alien"
+  vars:
+    _mysql_cluster_hostgroups:
+      - "{{ mysql_group_prefix | default('_mysql') }}_install_master"
+      - "{{ mysql_group_prefix | default('_mysql') }}_install_slave"
+      - "{{ mysql_group_prefix | default('_mysql') }}_install_alien"
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Create user config directory for MySQL shell
       ansible.builtin.file:
@@ -155,7 +163,7 @@
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
-      loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
+      loop: "{{ _mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
 
@@ -170,6 +178,6 @@
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
         timeout: 3
-      loop: "{{ mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
+      loop: "{{ _mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register

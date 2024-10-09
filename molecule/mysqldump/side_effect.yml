@@ -7,7 +7,7 @@
       ansible.builtin.command:
         cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:
-        _mysql_cmd: 'SELECT @@global.super_read_only AS sro'
+        _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       register: _slave_query
 
     - name: Load sakila DB
@@ -95,13 +95,8 @@
             name: mysql
             state: started
 
-
-- name: Import facts playbook
-  ansible.builtin.import_playbook: pokerops.mysql.facts
-
-
 - name: Drop cluster data
-  hosts: _mysql_master
+  hosts: all
   become: true
   tasks:
     - name: List databases
@@ -116,40 +111,56 @@
       ansible.builtin.assert:
         that: _member_query.query_result[0] | selectattr('Database', 'equalto', 'sakila') | length == 1
 
+    - name: Query MySQL Cluster status
+      ansible.builtin.command:
+        cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
+      vars:
+        _mysql_cmd: "SELECT @@global.super_read_only AS sro"
+      register: _slave_query
+
     - name: Drop sakila DB data
       community.mysql.mysql_db:
         name: sakila
         state: absent
         login_user: root
         login_password: "{{ mysql_root_password }}"
+      when: _slave_query.stdout | int == 0
 
-    - name: List databases
+    - name: Verify sakila DB
       community.mysql.mysql_query:
         query: "SHOW databases"
         login_user: "{{ mysql_root_username | default('root') }}"
         login_password: "{{ mysql_root_password }}"
       ignore_errors: true
       register: _member_query
-
-    - name: Verify sakila DB
-      ansible.builtin.assert:
-        that: _member_query.query_result[0] | selectattr('Database', 'equalto', 'sakila') | length == 0
-
+      retries: 5
+      delay: 60
+      until: _member_query.query_result[0] | selectattr('Database', 'equalto', 'sakila') | length == 0
 
 - name: Restore mysqldump backup
-  hosts: _mysql_master
+  hosts: all
   become: true
   tasks:
-    - name: List xbstream backup files
-      ansible.builtin.find:
-        paths: "/backup/{{ inventory_hostname_short }}"
-        patterns: "*.sql.gz"
-      register: _backup_query
-
-    - name: Set backup target facts
-      ansible.builtin.set_fact:
-        backup_target: "{{ _backup_query.files | map(attribute='path') | sort | last }}"
-
-    - name: Restore cluster mysqldump backup
+    - name: Query MySQL Cluster status
       ansible.builtin.command:
-        cmd: "/usr/local/bin/mysql-restore {{ backup_target }}"
+        cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
+      vars:
+        _mysql_cmd: "SELECT @@global.super_read_only AS sro"
+      register: _slave_query
+
+    - name: Restore mysqldump backup
+      when: _slave_query.stdout | int == 0
+      block:
+        - name: List xbstream backup files
+          ansible.builtin.find:
+            paths: "/backup/{{ inventory_hostname_short }}"
+            patterns: "*.sql.gz"
+          register: _backup_query
+
+        - name: Set backup target facts
+          ansible.builtin.set_fact:
+            backup_target: "{{ _backup_query.files | map(attribute='path') | sort | last }}"
+
+        - name: Restore mysqldump backup
+          ansible.builtin.command:
+            cmd: "/usr/local/bin/mysql-restore {{ backup_target }}"

@@ -5,7 +5,7 @@
   vars:
     percona_release: percona-release
   vars_files:
-    - vars.yml
+    - ../vars/default.yml
   tasks:
     - name: Query installed packages
       ansible.builtin.package_facts:

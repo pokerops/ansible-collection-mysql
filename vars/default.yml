@@ -8,10 +8,6 @@ mysql_shell_package: "mysql-shell"
 mysql_server_package: "mysql-server"
 mysql_server_datadir: "/var/lib/mysql"
 mysql_client_package: "mysql-client"
-mysql_cluster_hostgroups:
-  - "_mysql_master"
-  - "_mysql_slave"
-  - "_mysql_alien"
 
 # Overridable parameters
 _mysql_server_daemon: "{{ mysql_server_daemon | default('mysql') }}"
