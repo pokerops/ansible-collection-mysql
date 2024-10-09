@@ -8,8 +8,11 @@
         login_user: "{{ mysql_root_username | default('root') }}"
         login_password: "{{ mysql_root_password }}"
       ignore_errors: true
-      register: _member_query
+      register: _database_query
 
     - name: Verify sakila DB
       ansible.builtin.assert:
-        that: _member_query.query_result[0] | selectattr('Database', 'equalto', 'sakila') | length == 1
+        that: _database_results | selectattr('Database', 'equalto', 'sakila') | length == 1
+        fail_msg: "databases: {{ _database_results | map(attribute='Database') }}"
+      vars:
+        _database_results: "{{ _database_query.query_result[0] }}"
