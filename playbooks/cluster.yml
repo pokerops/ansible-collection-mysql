@@ -165,3 +165,5 @@
           ansible.builtin.include_role:
             name: pokerops.mysql.mysql
             tasks_from: "users"
+          vars:
+            mysql_hide_passwords: "{{ _mysql_nolog }}"
