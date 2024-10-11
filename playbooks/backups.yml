@@ -30,7 +30,7 @@
 
     - name: Install Percona XtraBackup
       ansible.builtin.apt:
-        name: "percona-xtrabackup-{{ _mysql_release | regex_replace('\\.', '') }}"
+        name: "{{ _mysql_xtrabackup_package }}"
         update_cache: yes
         state: latest
 
