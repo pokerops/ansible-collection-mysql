@@ -4,6 +4,7 @@
 set -euo pipefail
 
 mysql_data_dir="{{ mysql_server_datadir }}"
+mysql_backup_retention="{{ _mysql_backup_retention }}"
 
 function backup_report {
   backup_file=$1
@@ -39,12 +40,24 @@ function backup_mysqldump {
   backup_report "${backup_file}"
 }
 
+function backup_prune {
+  backup_path="{{ _mysql_backup_dir }}/{{ inventory_hostname_short }}"
+  mysql_backup_count="$(find "${backup_path}" -mindepth 1 -maxdepth 1 -type f -mtime "-${mysql_backup_retention}" | wc -l)"
+  if (("${mysql_backup_count}" > 1)); then
+      find "${backup_path}" -mindepth 1 -maxdepth 1 -type f -mtime "+${mysql_backup_retention}" \
+        -exec echo "$(date '+%Y-%m-%dT%H:%M:%S.%N%:z' | sed 's/\([0-9]\{6\}\)[0-9]*/\1/') 0 [Note] [mysql-backup] Pruning backup file {}"
+      find "${backup_path}" -mindepth 1 -maxdepth 1 -type f -mtime "+${mysql_backup_retention}" \
+        -delete
+  fi
+}
+
 function main {
   is_slave=$(mysql -Ns -e "SELECT @@global.read_only;")
   backup_xbstream
   if ((is_slave > 0)); then
     backup_mysqldump
   fi
+  backup_prune
 }
 
 main "$@"
