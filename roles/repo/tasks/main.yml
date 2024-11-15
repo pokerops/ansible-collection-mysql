@@ -14,8 +14,13 @@
       changed_when: false
 
     - name: Deploy MySQL apt repository
-      when: mysql_apt_config not in packages
       block:
+        - name: Purge MySQL apt repository
+          ansible.builtin.apt:
+            name: "{{ mysql_apt_config }}"
+            state: absent
+            purge: true
+
         - name: Configure MySQL apt repository
           ansible.builtin.debconf:
             name: mysql-apt-config
