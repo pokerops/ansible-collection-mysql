@@ -35,6 +35,15 @@
   loop: "{{ mysql_cluster_packages | map('split', '=') | map('first') }}"
   changed_when: false
 
+- name: Set MySQL Server package version
+  ansible.builtin.set_fact:
+    mysql_package_version: "{{ _version }}"
+  vars:
+    _mysql_package_name: "mysql-server"
+    _mysql_package: "{{ packages[_mysql_package_name'] }}"
+    _version: "{{ _mysql_package | map(attribute='version') | first }}"
+  when: _mysql_package_name in packages
+
 - name: Include MySQL variables
   ansible.builtin.include_role:
     name: pokerops.mysql.mysql
@@ -75,3 +84,20 @@
     selection: hold
   loop: "{{ mysql_cluster_packages | map('split', '=') | map('first') }}"
   changed_when: false
+
+- name: Query installed packages
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Restart MySQL Server
+  ansible.builtin.service:
+    name: "{{ _mysql_package_name }}"
+    state: restarted
+  vars:
+    _mysql_package_name: "mysql-server"
+    _mysql_old_version: "{{ mysql_package_version }}"
+    _mysql_package: "{{ packages[_mysql_package_name'] }}"
+    _mysql_new_version: "{{ _mysql_package | map(attribute='version') | first }}"
+  when:
+    - _mysql_package_name in packages
+    - _mysql_old_version != _mysql_new_version
