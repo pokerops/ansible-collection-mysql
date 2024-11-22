@@ -37,7 +37,7 @@
 
 - name: Set MySQL Server package version
   ansible.builtin.set_fact:
-    mysql_package_version_installed: "{{ _mysql_version_installed if _mysql_package_query else _mysql_version_defined }}"
+    mysql_package_version_target: "{{ _mysql_version_installed if _mysql_package_query else _mysql_version_defined }}"
   vars:
     _mysql_package_name: "mysql-server"
     _mysql_package_query: "{{ _mysql_package_name in packages }}"
@@ -97,7 +97,7 @@
     state: restarted
   vars:
     _mysql_package_name: "mysql-server"
-    _mysql_old_version: "{{ mysql_package_version_installed }}"
+    _mysql_target_version: "{{ mysql_package_version_target }}"
     _mysql_package: "{{ packages[_mysql_package_name] }}"
-    _mysql_new_version: "{{ _mysql_package | map(attribute='version') | first }}"
-  when: _mysql_old_version != _mysql_new_version
+    _mysql_installed_version: "{{ _mysql_package | map(attribute='version') | first }}"
+  when: _mysql_target_version != _mysql_installed_version
