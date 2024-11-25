@@ -35,6 +35,17 @@
   loop: "{{ mysql_cluster_packages | map('split', '=') | map('first') }}"
   changed_when: false
 
+- name: Set MySQL Server package version
+  ansible.builtin.set_fact:
+    mysql_package_version_installed: "{{ _mysql_version_installed if _mysql_package_query else _mysql_version_target }}"
+  vars:
+    _mysql_package_name: "mysql-server"
+    _mysql_package_query: "{{ _mysql_package_name in packages }}"
+    _mysql_package: "{{ packages[_mysql_package_name] | default([]) }}"
+    _mysql_version_installed: "{{ _mysql_package | map(attribute='version') | first }}"
+    _mysql_server_package: "{{ mysql_cluster_packages | select('regex', _mysql_package_name) }}"
+    _mysql_version_target: "{{ _mysql_server_package | map('split', '=') | map('last') | first }}"
+
 - name: Include MySQL variables
   ansible.builtin.include_role:
     name: pokerops.mysql.mysql
@@ -75,3 +86,18 @@
     selection: hold
   loop: "{{ mysql_cluster_packages | map('split', '=') | map('first') }}"
   changed_when: false
+
+- name: Query installed packages
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Restart MySQL Server
+  ansible.builtin.service:
+    name: "{{ _mysql_package_name }}"
+    state: restarted
+  vars:
+    _mysql_package_name: "mysql-server"
+    _mysql_package: "{{ packages[_mysql_package_name] }}"
+    _mysql_installed_version: "{{ mysql_package_version_installed }}"
+    _mysql_installed_target: "{{ _mysql_package | map(attribute='version') | first }}"
+  when: _mysql_installed_version != _mysql_installed_target

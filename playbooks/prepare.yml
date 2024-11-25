@@ -35,8 +35,8 @@
 
     - name: Check package pins
       ansible.builtin.assert:
-        that: mysql_shell_package is not search('=')
-        fail_msg: "Playbook does not support mysql_shell package pinning, got {{ mysql_shell_package }}"
+        that: _mysql_shell_package is not search('=')
+        fail_msg: "Playbook does not support mysql_shell package pinning, got {{ _mysql_shell_package }}"
 
     - name: Configure MySQL repo
       ansible.builtin.include_role:
