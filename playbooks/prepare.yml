@@ -33,11 +33,6 @@
       loop: "{{ ansible_play_hosts }}"
       when: mysql_config_hostnames | default(True) | bool
 
-    - name: Check package pins
-      ansible.builtin.assert:
-        that: _mysql_shell_package is not search('=')
-        fail_msg: "Playbook does not support mysql_shell package pinning, got {{ _mysql_shell_package }}"
-
     - name: Configure MySQL repo
       ansible.builtin.include_role:
         name: pokerops.mysql.repo
