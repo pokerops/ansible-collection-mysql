@@ -10,7 +10,7 @@
     update_cache_valid_time: 1
   roles:
     - pokerops.mysql.update
-  tasks:
+  pre_tasks:
     - name: Query MySQL Cluster status
       ansible.builtin.expect:
         command: >
@@ -48,6 +48,7 @@
         name: mysql
         state: stopped
 
+  tasks:
     - name: Reboot node
       ansible.builtin.reboot:
         reboot_timeout: "{{ mysql_reboot_timeout | default(300) }}"
