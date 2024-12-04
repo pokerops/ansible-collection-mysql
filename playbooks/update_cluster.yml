@@ -12,16 +12,12 @@
     - pokerops.mysql.update
   pre_tasks:
     - name: Query MySQL Cluster status
-      ansible.builtin.expect:
-        command: >
-          mysqlsh --javascript --password --save-passwords=always --quiet-start=2
+      ansible.builtin.command:
+        cmd: >-
+          mysqlsh --javascript
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
             --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
-        responses:
-          ".*> $": "\\q"
-          ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
-        timeout: 3
       register: _mysql_cluster_status_query
       changed_when: false
 
