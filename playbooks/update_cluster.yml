@@ -12,12 +12,17 @@
     - pokerops.mysql.update
   pre_tasks:
     - name: Query MySQL Cluster status
-      ansible.builtin.command:
-        cmd: >-
-          mysqlsh --javascript
+      ansible.builtin.expect:
+        command: >
+          mysqlsh --javascript --password --save-passwords=always --quiet-start=2
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
             --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
+        responses:
+          ".*> $": "\\q"
+          ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
+        timeout: 3
+      become: false
       register: _mysql_cluster_status_query
       changed_when: false
 
@@ -72,6 +77,7 @@
         _mysql_member_status: "{{ _mysql_cluster_status.defaultReplicaSet.topology.values() }}"
         _mysql_member_online: "{{ _mysql_member_status | selectattr('status', 'equalto', 'ONLINE') }}"
         _mysql_member_ok: "{{ _mysql_member_online | map(attribute='address') | map('split', ':') | map('first') }}"
+      become: false
       register: _mysql_cluster_status_query
       retries: 5
       delay: 60
