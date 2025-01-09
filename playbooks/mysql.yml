@@ -48,20 +48,12 @@
                   - "{{ _mysql_client_package }}={{ mysql_server_package_query.stdout }}"
                   - "{{ _mysql_shell_package }}"
 
-    - name: Set MySQL package facts
-      ansible.builtin.set_fact:
-        mysql_master_packages:
-          - "{{ _mysql_server_package }}"
-          - "{{ _mysql_client_package }}"
-          - "{{ _mysql_shell_package }}"
-      when: _mysql_server_package is search('=')
-
-    - name: Set MySQL package facts for cluster members
-      ansible.builtin.set_fact:
-        mysql_cluster_packages: "{{ mysql_master_packages }}"
-      loop: "{{ groups[mysql_cluster_group | default('mysql_cluster')] }}"
-      delegate_to: "{{ item }}"
-      delegate_facts: true
+        - name: Set MySQL package facts for cluster members
+          ansible.builtin.set_fact:
+            mysql_cluster_packages: "{{ mysql_master_packages }}"
+          loop: "{{ groups[mysql_cluster_group | default('mysql_cluster')] }}"
+          delegate_to: "{{ item }}"
+          delegate_facts: true
 
 - name: Deploy MySQL packages on alien nodes
   hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_alien"
