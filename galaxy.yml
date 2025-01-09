@@ -12,8 +12,8 @@ tags:
   - mysql
 dependencies:
   "nephelaiio.plugins": "*"
-repository: http://github.com/nephelaiio/ansible-collection-mysql
-documentation: http://github.com/nephelaiio/ansible-collection-mysql
-homepage: http://github.com/nephelaiio/ansible-collection-mysql
-issues: http://github.com/nephelaiio/ansible-collection-mysql/issues
+repository: http://github.com/pokerops/ansible-collection-mysql
+documentation: http://github.com/pokerops/ansible-collection-mysql
+homepage: http://github.com/pokerops/ansible-collection-mysql
+issues: http://github.com/pokerops/ansible-collection-mysql/issues
 build_ignore: []
