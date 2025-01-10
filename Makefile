@@ -27,7 +27,7 @@ install:
 	@type poetry >/dev/null || pip3 install poetry
 	@type yq >/dev/null || sudo apt-get install -y yq
 	@sudo apt-get install -y libvirt-dev network-manager
-	@poetry install --no-root
+	@poetry install
 
 lint: install
 	poetry run yamllint .
@@ -78,4 +78,4 @@ version:
 	@poetry run molecule --version
 
 debug: version
-	@poetry export --dev --without-hashes
+	@poetry export --dev --without-hashes || exit 0
