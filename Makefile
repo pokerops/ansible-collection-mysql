@@ -5,7 +5,7 @@ MOLECULE_DOCKER_IMAGE ?= ubuntu2204
 MOLECULE_DOCKER_COMMAND ?= /lib/systemd/systemd
 MOLECULE_KVM_IMAGE ?= https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 GALAXY_API_KEY ?=
-GITHUB_REPOSITORY ?= $$(git config --get remote.origin.url | cut -d: -f 2 | cut -d. -f 1)
+GITHUB_REPOSITORY ?= $$(git config --get remote.origin.url | cut -d':' -f 2 | cut -d. -f 1)
 GITHUB_ORG = $$(echo ${GITHUB_REPOSITORY} | cut -d/ -f 1)
 GITHUB_REPO = $$(echo ${GITHUB_REPOSITORY} | cut -d/ -f 2)
 REQUIREMENTS = requirements.yml
@@ -27,7 +27,7 @@ install:
 	@type poetry >/dev/null || pip3 install poetry
 	@type yq >/dev/null || sudo apt-get install -y yq
 	@sudo apt-get install -y libvirt-dev network-manager
-	@poetry install --no-root
+	@poetry install
 
 lint: install
 	poetry run yamllint .
@@ -78,4 +78,4 @@ version:
 	@poetry run molecule --version
 
 debug: version
-	@poetry export --dev --without-hashes
+	@poetry export --dev --without-hashes || exit 0

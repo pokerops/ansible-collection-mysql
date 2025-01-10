@@ -1,9 +1,19 @@
 ---
-- name: Verify role preconditions
+- name: Verify root password precondition
   ansible.builtin.assert:
-    that:
-      - mysql_cluster_packages is defined
-      - mysql_root_password is defined
+    that: mysql_root_password is defined
+
+- name: Verify package preconditions
+  ansible.builtin.assert:
+    that: mysql_cluster_packages is defined or _mysql_server_package is search('=')
+
+- name: Set target package facts
+  ansible.builtin.set_fact:
+    mysql_cluster_packages:
+      - "{{ _mysql_server_package }}"
+      - "{{ _mysql_client_package }}"
+      - "{{ mysql_shell_package }}"
+  when: mysql_cluster_packages is not defined
 
 - name: Debug package targets
   ansible.builtin.debug:
@@ -74,9 +84,9 @@
     - name: Manage MySQL clusteradmin user
       community.mysql.mysql_user:
         name: "{{ mysql_clusteradmin_username }}"
-        host: '%'
+        host: "%"
         password: "{{ mysql_clusteradmin_password }}"
-        priv: '*.*:ALL,GRANT'
+        priv: "*.*:ALL,GRANT"
         column_case_sensitive: true
       no_log: "{{ mysql_nolog | default(True) }}"
 

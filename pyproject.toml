@@ -1,12 +1,14 @@
 [tool.poetry]
-name = "nephelaiio-mysql"
+name = "pokerops-mysql"
 version = "0.1.0"
 description = ""
 authors = ["Ted Cook <teodoro.cook@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
+poetry-plugin-export = "^1.8.0"
 
 [tool.poetry.group.dev.dependencies]
 ansible-lint = { version = "^24.6.0", markers = "platform_system != 'Windows'" }
@@ -19,6 +21,9 @@ docker = "^7.1.0"
 libvirt-python = "^10.5.0"
 lxml = "^5.2.2"
 passlib = "^1.7.4"
+
+[tool.poetry.plugins."poetry.application.plugin"]
+export = "poetry_plugin_export.plugins:ExportApplicationPlugin"
 
 [build-system]
 requires = ["poetry-core"]
