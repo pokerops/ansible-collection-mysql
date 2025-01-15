@@ -15,13 +15,24 @@
   vars_files:
     - ../vars/default.yml
   tasks:
-    - name: Query MySQL Cluster membership
-      community.mysql.mysql_query:
-        query: "SELECT member_host FROM performance_schema.replication_group_members"
-        login_user: "{{ mysql_root_username | default('root') }}"
-        login_password: "{{ mysql_root_password }}"
-      ignore_errors: true
-      register: _member_query
+    - name: Query MySQL Cluster status
+      ansible.builtin.command:
+        cmd: >
+          mysqlsh --javascript --quiet-start=2
+            --host {{ inventory_hostname }}
+            --user clusteradmin
+            --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
+      register: _mysql_cluster_status_query
+      changed_when: false
+
+    - name: Set MySQL Cluster members fact
+      ansible.builtin.set_fact:
+        _mysql_cluster_members: "{{ _members_regex }}"
+      vars:
+        _query: "{{ _mysql_cluster_status_query.stdout | from_json }}"
+        _members_topology: "{{ _query['defaultReplicaSet']['topology'] | dict2items }}"
+        _members_list: "{{ _members_topology | map(attribute='key') }}"
+        _members_regex: "{{ _members_list | map('regex_replace', ':3306', '') }}"
 
     - name: Verify MySQL Cluster names
       ansible.builtin.assert:
@@ -34,7 +45,6 @@
     - name: Set MySQL Cluster facts
       ansible.builtin.set_fact:
         _mysql_cluster_targets: "{{ _role_groups | map('extract', groups) | flatten | unique | difference(_members_exclude) }}"
-        _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
         _mysql_cluster_exclude: "{{ _members_exclude }}"
         _mysql_cluster_groups: "{{ _cluster_groups_standby }}"
       vars:
@@ -111,6 +121,10 @@
           vars:
             _expected: "{{ mysql_cluster_name }}"
             _actual: "{{ _mysql_cluster_status['clusterName'] }}"
+
+        - name: Debug MySQL Cluster existing members
+          ansible.builtin.debug:
+            msg: "Adding cluster members [{{ _mysql_cluster_members | join(', ') }}]"
 
         - name: Debug MySQL Cluster member additions
           ansible.builtin.debug:
