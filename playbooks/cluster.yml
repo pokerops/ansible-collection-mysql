@@ -124,7 +124,7 @@
 
         - name: Debug MySQL Cluster existing members
           ansible.builtin.debug:
-            msg: "Adding cluster members [{{ _mysql_cluster_members | join(', ') }}]"
+            msg: "Existing cluster members [{{ _mysql_cluster_members | join(', ') }}]"
 
         - name: Debug MySQL Cluster member additions
           ansible.builtin.debug:
