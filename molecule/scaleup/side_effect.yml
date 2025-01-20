@@ -5,7 +5,7 @@
     mysql_cluster_group: mysql_cluster_up
 
 - name: Query cluster state
-  hosts: "_mysql_master"
+  hosts: mysql_cluster_up
   tasks:
     - name: Query MySQL Cluster status
       ansible.builtin.command:
