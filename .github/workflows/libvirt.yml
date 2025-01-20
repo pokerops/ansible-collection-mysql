@@ -9,7 +9,7 @@ on:
 jobs:
   libvirt:
     name: libvirt
-    runs-on: libvirt
+    runs-on: libvirt2
     strategy:
       matrix:
         scenario:
