@@ -15,7 +15,7 @@
   vars_files:
     - ../vars/default.yml
   tasks:
-    - name: Query MySQL Cluster membership
+    - name: Query MySQL Cluster online membership
       community.mysql.mysql_query:
         query: "SELECT member_host FROM performance_schema.replication_group_members"
         login_user: "{{ mysql_root_username | default('root') }}"
@@ -34,9 +34,9 @@
     - name: Set MySQL Cluster facts
       ansible.builtin.set_fact:
         _mysql_cluster_targets: "{{ _role_groups | map('extract', groups) | flatten | unique | difference(_members_exclude) }}"
-        _mysql_cluster_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
         _mysql_cluster_exclude: "{{ _members_exclude }}"
         _mysql_cluster_groups: "{{ _cluster_groups_standby }}"
+        _mysql_cluster_online_members: "{{ _member_query.query_result | flatten | map(attribute='member_host') }}"
       vars:
         _role_groups: "{{ _mysql_deploy_hostgroups | intersect(groups.keys()) }}"
         _cluster_groups: "{{ groups.keys() | select('match', '^' + _mysql_all_hostgroup_prefix + '_.*') }}"
@@ -45,7 +45,7 @@
         _members_exclude: "{{ _cluster_groups_standby | map('extract', groups) | flatten | unique }}"
 
     - name: Initialize MySQL Cluster
-      when: _mysql_cluster_members | length == 0
+      when: _mysql_cluster_online_members | length == 0
       block:
         - name: Verify MySQL Cluster instance readiness
           ansible.builtin.command:
@@ -87,8 +87,27 @@
           loop: "{{ _mysql_cluster_targets | difference([inventory_hostname]) }}"
 
     - name: Manage MySQL Cluster state
-      when: _mysql_cluster_members | length > 0
+      when: _mysql_cluster_online_members | length > 0
       block:
+        - name: Query MySQL Cluster status
+          ansible.builtin.command:
+            cmd: >
+              mysqlsh --javascript --quiet-start=2
+                --host {{ inventory_hostname }}
+                --user clusteradmin
+                --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
+          register: _mysql_cluster_status_query
+          changed_when: false
+
+        - name: Set MySQL Cluster members fact
+          ansible.builtin.set_fact:
+            _mysql_cluster_all_members: "{{ _members_regex }}"
+          vars:
+            _query: "{{ _mysql_cluster_status_query.stdout | from_json }}"
+            _members_topology: "{{ _query['defaultReplicaSet']['topology'] | dict2items }}"
+            _members_list: "{{ _members_topology | map(attribute='key') }}"
+            _members_regex: "{{ _members_list | map('regex_replace', ':3306', '') }}"
+
         - name: Query MySQL Cluster status
           ansible.builtin.command:
             cmd: >-
@@ -101,8 +120,8 @@
         - name: Set MySQL Cluster facts
           ansible.builtin.set_fact:
             _mysql_cluster_status: "{{ _mysql_cluster_query.stdout | from_json }}"
-            _mysql_cluster_member_add: "{{ _mysql_cluster_targets | difference(_mysql_cluster_members) }}"
-            _mysql_cluster_member_del: "{{ _mysql_cluster_members | difference(_mysql_cluster_targets) }}"
+            _mysql_cluster_member_add: "{{ _mysql_cluster_targets | difference(_mysql_cluster_all_members) }}"
+            _mysql_cluster_member_del: "{{ _mysql_cluster_all_members | difference(_mysql_cluster_targets) }}"
 
         - name: Verify MySQL Cluster name
           ansible.builtin.assert:
@@ -111,6 +130,10 @@
           vars:
             _expected: "{{ mysql_cluster_name }}"
             _actual: "{{ _mysql_cluster_status['clusterName'] }}"
+
+        - name: Debug MySQL Cluster existing members
+          ansible.builtin.debug:
+            msg: "Existing cluster members [{{ _mysql_cluster_all_members | join(', ') }}]"
 
         - name: Debug MySQL Cluster member additions
           ansible.builtin.debug:
