@@ -163,7 +163,7 @@
               mysqlsh --javascript
                 --host {{ inventory_hostname }}
                 --user {{ mysql_clusteradmin_username }}
-                --execute 'dba.getCluster("{{ mysql_cluster_name }}").removeInstance("{{ _mysql_instance }}")'
+                --execute 'dba.getCluster("{{ mysql_cluster_name }}").removeInstance("{{ _mysql_instance }}",{force: true})'
           vars:
             _mysql_instance: "{{ mysql_clusteradmin_username }}@{{ item }}"
             _mysql_msg: "The instance '{{ item }}:3306' was successfully removed from the cluster"
