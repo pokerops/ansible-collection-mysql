@@ -5,10 +5,9 @@
 
 - name: Verify package preconditions
   ansible.builtin.assert:
-    that: mysql_cluster_packages is defined or _packages_versioned | length > 0
+    that: (mysql_cluster_packages is defined) or (_versioned | length > 0)
   vars:
-    _packages: "{{ _mysql_packages }}"
-    _packages_versioned: "{{ _packages | select('match', '.*=.*') }}"
+    _versioned: "{{ _mysql_packages_versioned }}"
 
 - name: Set target package facts
   ansible.builtin.set_fact:

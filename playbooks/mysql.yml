@@ -16,6 +16,7 @@
     - name: Set MySQL package facts
       ansible.builtin.set_fact:
         _mysql_packages_versioned: "{{ _packages_versioned }}"
+        _map_format: "nephelaiio.plugins.map_format"
       vars:
         _packages: "{{ _mysql_packages }}"
         _packages_versioned: "{{ _packages | select('match', '.*=.*') }}"
@@ -37,7 +38,7 @@
         _unversioned_num: "{{ _packages_unversioned | length }}"
 
     - name: Initialize MySQL package facts
-      when: _mysql_packages_versioned | length > 0
+      when: _mysql_packages_versioned | length == 0
       block:
         - name: Query MySQL package targets
           when: mysql_server_package in packages
@@ -52,7 +53,6 @@
               ansible.builtin.set_fact:
                 mysql_master_packages: "{{ _packages | map(_map_format, '%' + _release) }}"
               vars:
-                _map_format: "nephelaiio.plugins.map_format"
                 _release: "{{ mysql_server_package_query.stdout }}"
 
         - name: Bootstrap MySQL package facts
@@ -68,7 +68,6 @@
               ansible.builtin.set_fact:
                 mysql_master_packages: "{{ _packages | map(_map_format, '%' + _release) }}"
               vars:
-                _map_format: "nephelaiio.plugins.map_format"
                 _release: "{{ mysql_server_package_query.stdout }}"
 
         - name: Set MySQL package facts for cluster members
