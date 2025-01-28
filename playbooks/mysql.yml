@@ -40,35 +40,25 @@
     - name: Initialize MySQL package facts
       when: _mysql_packages_versioned | length == 0
       block:
-        - name: Query MySQL package targets
+        - name: Query installed MySQL server package version
+          ansible.builtin.shell:
+            cmd: "dpkg-query -W -f='${Version}' {{ mysql_server_package }}"
+          changed_when: false
+          register: mysql_server_package_query
           when: mysql_server_package in packages
-          block:
-            - name: Query installed MySQL server package version
-              ansible.builtin.shell:
-                cmd: "dpkg-query -W -f='${Version}' {{ mysql_server_package }}"
-              changed_when: false
-              register: mysql_server_package_query
 
-            - name: Set MySQL master package facts
-              ansible.builtin.set_fact:
-                mysql_master_packages: "{{ _packages | map(_map_format, '%' + _release) }}"
-              vars:
-                _release: "{{ mysql_server_package_query.stdout }}"
-
-        - name: Bootstrap MySQL package facts
+        - name: Query target MySQL server package version
+          ansible.builtin.shell:
+            cmd: "apt-cache madison {{ mysql_server_package }} | awk '{ print $3 }' | grep '^{{ _mysql_release }}' | sort -r | head -1"
+          changed_when: false
+          register: mysql_server_package_query
           when: mysql_server_package not in packages
-          block:
-            - name: Query target MySQL server package version
-              ansible.builtin.shell:
-                cmd: "apt-cache madison {{ mysql_server_package }} | awk '{ print $3 }' | grep '^{{ _mysql_release }}' | sort -r | head -1"
-              changed_when: false
-              register: mysql_server_package_query
 
-            - name: Set MySQL master package facts
-              ansible.builtin.set_fact:
-                mysql_master_packages: "{{ _packages | map(_map_format, '%' + _release) }}"
-              vars:
-                _release: "{{ mysql_server_package_query.stdout }}"
+        - name: Set MySQL master package facts
+          ansible.builtin.set_fact:
+            mysql_master_packages: "{{ _mysql_packages | map(_map_format, '%' + _release) }}"
+          vars:
+            _release: "{{ mysql_server_package_query.stdout }}"
 
         - name: Set MySQL package facts for cluster members
           ansible.builtin.set_fact:
