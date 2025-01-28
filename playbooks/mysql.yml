@@ -55,7 +55,7 @@
 
         - name: Set MySQL master package facts
           ansible.builtin.set_fact:
-            mysql_master_packages: "{{ _mysql_packages | map(_map_format, '%s' + _release) }}"
+            mysql_master_packages: "{{ _mysql_packages | map(_map_format, '%s=' + _release) }}"
           vars:
             _map_format: "nephelaiio.plugins.map_format"
             _release: "{{ mysql_server_package_query.stdout }}"
