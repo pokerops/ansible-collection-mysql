@@ -21,6 +21,12 @@
           - mysql_clusteradmin_password is defined
         fail_msg: "mysql_clusteradmin_password must be defined"
 
+    - name: Remove conflicting hosts entries
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1'
+        state: absent
+
     - name: Add host entries for cluster members
       ansible.builtin.lineinfile:
         path: /etc/hosts

@@ -15,7 +15,6 @@ mysql_packages_default:
   - "mysql-community-client-core"
   - "mysql-community-client-plugins"
   - "mysql-client"
-  - "mysql-common"
   - "mysql-shell"
 
 # Overridable parameters
