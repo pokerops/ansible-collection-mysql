@@ -55,17 +55,20 @@
           register: mysql_server_package_query
           when: mysql_server_package not in packages
 
-        - debug:
-            msg: "{{ mysql_server_package_query }}"
-
-        - fail:
-
         - name: Set MySQL master package facts
           ansible.builtin.set_fact:
-            mysql_master_packages: "{{ _mysql_packages | map(_map_format, '%s=' + _release) }}"
+            mysql_master_packages: "{{ _packages_versioned + _packages_nonversioned }}"
           vars:
-            _map_format: "nephelaiio.plugins.map_format"
-            _release: "{{ mysql_server_package_query.results }}"
+            _map_join: "nephelaiio.plugins.map_join"
+            _package_atts:
+              - item
+              - stdout
+            _query_packages: "{{ mysql_server_package_query.results | sort(attribute='item') }}"
+            _packages: "{{ _mysql_packages | sort }}"
+            _packages_ver_query: "{{ _query_packages | rejectattr('stdout', 'equalto', '') }}"
+            _packages_nonver_query: "{{ _query_packages | difference(_packages_ver_query) }}"
+            _packages_versioned: "{{ _packages_ver_query | map(_map_join, _package_atts, '=') }}"
+            _packages_nonversioned: "{{ _packages_nonver_query | map(attribute='item') }}"
 
         - name: Set MySQL package facts for cluster members
           ansible.builtin.set_fact:
