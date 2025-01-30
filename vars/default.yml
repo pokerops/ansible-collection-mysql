@@ -9,8 +9,11 @@ mysql_xtrabackup_package_default: "percona-xtrabackup-{{ _mysql_release | regex_
 mysql_server_package: "mysql-server"
 mysql_packages_default:
   - "{{ mysql_server_package }}"
-  - "mysql-client"
-  - "mysql-shell"
+  - "mysql-community-server"
+  - "mysql-community-server-core"
+  - "mysql-community-client"
+  - "mysql-community-client-core"
+  - "mysql-community-client-plugins"
 
 # Overridable parameters
 _mysql_server_daemon: "{{ mysql_server_daemon | default('mysql') }}"
