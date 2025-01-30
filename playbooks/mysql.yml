@@ -24,7 +24,8 @@
       ansible.builtin.assert:
         that: (_versioned_num == _packages_num) or (_unversioned_num == _packages_num)
       vars:
-        _packages_num: "{{ _mysql_packages | length }}"
+        _packages: "{{ _mysql_packages }}"
+        _packages_num: "{{ _packages | length }}"
         _packages_versioned: "{{ _mysql_packages_versioned }}"
         _versioned_num: "{{ _packages_versioned | length }}"
         _packages_unversioned: "{{ _packages | difference(_packages_versioned) }}"
