@@ -60,7 +60,7 @@
               - stdout
             _query_packages: "{{ mysql_server_package_query.results | sort(attribute='item') }}"
             _packages: "{{ _mysql_packages | sort }}"
-            _packages_ver_query: "{{ _query_packages | rejectattr('stdout', 'equalto', '') }}"
+            _packages_ver_query: "{{ _query_packages | selectattr('stdout', 'defined') | rejectattr('stdout', 'equalto', '') }}"
             _packages_nonver_query: "{{ _query_packages | difference(_packages_ver_query) }}"
             _packages_versioned: "{{ _packages_ver_query | map(_map_join, _package_atts, '=') }}"
             _packages_nonversioned: "{{ _packages_nonver_query | map(attribute='item') }}"
