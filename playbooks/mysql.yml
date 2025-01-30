@@ -20,6 +20,9 @@
       vars:
         _packages: "{{ _mysql_packages }}"
         _packages_versioned: "{{ _packages | select('match', '.*=.*') }}"
+      loop: "{{ groups[mysql_cluster_group | default('mysql_cluster')] }}"
+      delegate_to: "{{ item }}"
+      delegate_facts: true
 
     - name: Verify MySQL packages
       ansible.builtin.assert:
