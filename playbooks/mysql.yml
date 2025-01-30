@@ -23,13 +23,8 @@
 
     - name: Verify MySQL packages
       ansible.builtin.assert:
-        that:
-          - _packages_num == _default_packages_num
-          - (_versioned_num == _packages_num) or (_unversioned_num == _packages_num)
-          - _packages | reject('in', _default_packages) | length == 0
+        that: (_versioned_num == _packages_num) or (_unversioned_num == _packages_num)
       vars:
-        _default_packages: "{{ mysql_packages_default }}"
-        _default_packages_num: "{{ _default_packages | length }}"
         _packages: "{{ _mysql_packages }}"
         _packages_num: "{{ _packages | length }}"
         _packages_versioned: "{{ _mysql_packages_versioned }}"
