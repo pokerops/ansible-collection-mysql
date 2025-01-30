@@ -13,40 +13,75 @@
       ansible.builtin.package_facts:
         manager: auto
 
+    - name: Set MySQL package facts
+      ansible.builtin.set_fact:
+        _mysql_packages_versioned: "{{ _packages_versioned }}"
+        _map_join: "nephelaiio.plugins.map_join"
+      vars:
+        _packages: "{{ _mysql_packages }}"
+        _packages_versioned: "{{ _packages | select('match', '.*=.*') }}"
+
+    - name: Verify MySQL packages
+      ansible.builtin.assert:
+        that: (_versioned_num == _packages_num) or (_unversioned_num == _packages_num)
+      vars:
+        _packages: "{{ _mysql_packages }}"
+        _packages_num: "{{ _packages | length }}"
+        _packages_versioned: "{{ _mysql_packages_versioned }}"
+        _versioned_num: "{{ _packages_versioned | length }}"
+        _packages_unversioned: "{{ _packages | difference(_packages_versioned) }}"
+        _unversioned_num: "{{ _packages_unversioned | length }}"
+
     - name: Initialize MySQL package facts
-      when: _mysql_server_package is not search('=')
+      when: _mysql_packages_versioned | length == 0
       block:
         - name: Query MySQL package targets
-          when: _mysql_server_package in packages
+          when: mysql_server_package in packages
           block:
             - name: Query installed MySQL server package version
               ansible.builtin.shell:
-                cmd: "dpkg-query -W -f='${Version}' {{ _mysql_server_package }}"
+                cmd: "dpkg-query -W -f='${Version}' {{ item }}"
               changed_when: false
+              loop: "{{ _mysql_packages }}"
               register: mysql_server_package_query
 
             - name: Set MySQL master package facts
               ansible.builtin.set_fact:
-                mysql_master_packages:
-                  - "{{ _mysql_server_package }}={{ mysql_server_package_query.stdout }}"
-                  - "{{ _mysql_client_package }}={{ mysql_server_package_query.stdout }}"
-                  - "{{ _mysql_shell_package }}"
+                mysql_master_packages: "{{ _packages_versioned + _packages_nonversioned }}"
+              vars:
+                _package_atts:
+                  - item
+                  - stdout
+                _query_packages: "{{ mysql_server_package_query.results | sort(attribute='item') }}"
+                _packages: "{{ _mysql_packages | sort }}"
+                _packages_ver_query: "{{ _query_packages | selectattr('stdout', 'defined') | rejectattr('stdout', 'equalto', '') }}"
+                _packages_nonver_query: "{{ _query_packages | difference(_packages_ver_query) }}"
+                _packages_versioned: "{{ _packages_ver_query | map(_map_join, _package_atts, '=') }}"
+                _packages_nonversioned: "{{ _packages_nonver_query | map(attribute='item') }}"
 
         - name: Bootstrap MySQL package facts
-          when: _mysql_server_package not in packages
+          when: mysql_server_package not in packages
           block:
             - name: Query target MySQL server package version
               ansible.builtin.shell:
-                cmd: "apt-cache madison {{ _mysql_server_package }} | awk '{ print $3 }' | grep '^{{ _mysql_release }}' | sort -r | head -1"
+                cmd: "apt-cache madison {{ item }} | awk '{ print $3 }' | grep '^{{ _mysql_release }}' | sort -r | head -1"
               changed_when: false
+              loop: "{{ _mysql_packages }}"
               register: mysql_server_package_query
 
             - name: Set MySQL master package facts
               ansible.builtin.set_fact:
-                mysql_master_packages:
-                  - "{{ _mysql_server_package }}={{ mysql_server_package_query.stdout }}"
-                  - "{{ _mysql_client_package }}={{ mysql_server_package_query.stdout }}"
-                  - "{{ _mysql_shell_package }}"
+                mysql_master_packages: "{{ _packages_versioned + _packages_nonversioned }}"
+              vars:
+                _package_atts:
+                  - item
+                  - stdout
+                _query_packages: "{{ mysql_server_package_query.results | sort(attribute='item') }}"
+                _packages: "{{ _mysql_packages | sort }}"
+                _packages_ver_query: "{{ _query_packages | selectattr('stdout', 'defined') | rejectattr('stdout', 'equalto', '') }}"
+                _packages_nonver_query: "{{ _query_packages | difference(_packages_ver_query) }}"
+                _packages_versioned: "{{ _packages_ver_query | map(_map_join, _package_atts, '=') }}"
+                _packages_nonversioned: "{{ _packages_nonver_query | map(attribute='item') }}"
 
         - name: Set MySQL package facts for cluster members
           ansible.builtin.set_fact:
