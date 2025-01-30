@@ -11,7 +11,7 @@
 
 - name: Set target package facts
   ansible.builtin.set_fact:
-    mysql_cluster_packages: "{{ mysql_packages_default }}"
+    mysql_cluster_packages: "{{ _mysql_packages }}"
   when: mysql_cluster_packages is not defined
 
 - name: Debug package targets
