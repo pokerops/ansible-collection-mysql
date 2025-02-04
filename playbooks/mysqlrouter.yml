@@ -36,6 +36,7 @@
           ansible.builtin.package:
             name:
               - mysql-router
+              - mysql-router-community
             purge: true
             state: absent
 
