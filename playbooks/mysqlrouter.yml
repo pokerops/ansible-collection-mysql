@@ -36,8 +36,8 @@
           ansible.builtin.package:
             name:
               - mysql-router
-              - mysql-router-community
             purge: true
+            state: absent
 
         - name: Purge MySQL Router directories
           ansible.builtin.file:
