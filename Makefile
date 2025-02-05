@@ -34,7 +34,7 @@ lint: install
 	poetry run ansible-lint .
 
 requirements: install
-	@yq '.roles[].name' =r < roles.yml | xargs -I {} rm -rf roles/{}
+	@yq '.roles[].name' -r < roles.yml | xargs -I {} rm -rf roles/{}
 	@python --version
 	@poetry run ansible-galaxy role install \
 		--force --no-deps \
@@ -45,13 +45,13 @@ requirements: install
 	@\find ./ -name "*.ymle*" -delete
 
 build: requirements
-	@poetry run ansible-galaxy collection build --force
+	@poetry run ansible-galaxy collection build -- --force
 
 dependency create prepare converge idempotence side-effect verify destroy cleanup reset list:
 	MOLECULE_KVM_IMAGE=${MOLECULE_KVM_IMAGE} \
 	MOLECULE_DOCKER_COMMAND=${MOLECULE_DOCKER_COMMAND} \
 	MOLECULE_DOCKER_IMAGE=${MOLECULE_DOCKER_IMAGE} \
-	poetry run molecule $@ -s ${MOLECULE_SCENARIO}
+	poetry run molecule $@ -- -s ${MOLECULE_SCENARIO}
 
 ifeq (login,$(firstword $(MAKECMDGOALS)))
     LOGIN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
@@ -62,7 +62,7 @@ login:
 	MOLECULE_KVM_IMAGE=${MOLECULE_KVM_IMAGE} \
 	MOLECULE_DOCKER_COMMAND=${MOLECULE_DOCKER_COMMAND} \
 	MOLECULE_DOCKER_IMAGE=${MOLECULE_DOCKER_IMAGE} \
-	poetry run molecule $@ -s ${MOLECULE_SCENARIO} ${LOGIN_ARGS}
+	poetry run molecule $@ -- -s ${MOLECULE_SCENARIO} ${LOGIN_ARGS}
 
 ignore:
 	@poetry run ansible-lint --generate-ignore
@@ -71,11 +71,11 @@ clean: destroy reset
 	@poetry env remove $$(which python) >/dev/null 2>&1 || exit 0
 
 publish: build
-	poetry run ansible-galaxy collection publish --api-key ${GALAXY_API_KEY} \
+	poetry run ansible-galaxy collection publish -- --api-key ${GALAXY_API_KEY} \
 		"${COLLECTION_NAMESPACE}-${COLLECTION_NAME}-${COLLECTION_VERSION}.tar.gz"
 
 version:
-	@poetry run molecule --version
+	@poetry run molecule -- --version
 
 debug: version
 	@poetry export --dev --without-hashes || exit 0

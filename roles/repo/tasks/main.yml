@@ -2,10 +2,6 @@
 - name: Deploy Debian MySQL repository
   when: ansible_os_family == 'Debian'
   block:
-    - name: Query installed packages
-      ansible.builtin.package_facts:
-        manager: auto
-
     - name: Create tempdir
       ansible.builtin.tempfile:
         state: directory
@@ -15,12 +11,6 @@
 
     - name: Deploy MySQL apt repository
       block:
-        - name: Purge MySQL apt repository
-          ansible.builtin.apt:
-            name: "{{ mysql_apt_config }}"
-            state: absent
-            purge: true
-
         - name: Configure MySQL apt repository
           ansible.builtin.debconf:
             name: mysql-apt-config
@@ -29,9 +19,11 @@
             vtype: select
           vars:
             _settings:
-              select-preview: Disabled
-              select-tools: Enabled
-              select-server: mysql-cluster-{{ mysql_release }}
+              mysql-apt-config/connectors-component: mysql-tools
+              mysql-apt-config/select-preview: Disabled
+              mysql-apt-config/select-product: Ok
+              mysql-apt-config/select-tools: Enabled
+              mysql-apt-config/select-server: "mysql-{{ mysql_release }}"
           loop_control:
             label: "{{ item.key }}"
           loop: "{{ _settings | dict2items }}"
@@ -46,6 +38,13 @@
         - name: Add MySQL apt repository
           ansible.builtin.apt:
             deb: "{{ mysql_tmpdir.path }}/mysql.deb"
+
+        - name: Reconfigure MySQL apt repository
+          ansible.builtin.expect:
+            command: dpkg-reconfigure mysql-apt-config --frontend readline
+            responses:
+              "configure?": "3"
+              "Overwrite?": "y"
 
         - name: Add gpg key for MySQL repository
           ansible.builtin.apt_key:
