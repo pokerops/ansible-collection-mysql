@@ -2,7 +2,7 @@
 - name: Verify MySQL Cluster services
   hosts: "{{ mysql_cluster_group | default('mysql_cluster') }}"
   vars:
-    mysql_server_daemon: mysql
+    mysql_server_daemon: mysql.service
   tasks:
     - name: Gather service facts
       ansible.builtin.service_facts:
