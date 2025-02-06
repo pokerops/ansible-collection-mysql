@@ -23,7 +23,7 @@
               mysql-apt-config/select-preview: Disabled
               mysql-apt-config/select-product: Ok
               mysql-apt-config/select-tools: Enabled
-              mysql-apt-config/select-server: "mysql-{{ mysql_release }}"
+              mysql-apt-config/select-server: "mysql-{{ _mysql_release_short }}"
           loop_control:
             label: "{{ item.key }}"
           loop: "{{ _settings | dict2items }}"
