@@ -23,7 +23,7 @@
               mysql-apt-config/select-preview: Disabled
               mysql-apt-config/select-product: Ok
               mysql-apt-config/select-tools: Enabled
-              mysql-apt-config/select-server: "mysql-{{ mysql_release }}"
+              mysql-apt-config/select-server: "mysql-{{ _mysql_release_short }}"
           loop_control:
             label: "{{ item.key }}"
           loop: "{{ _settings | dict2items }}"
@@ -55,7 +55,7 @@
           ansible.builtin.debconf:
             name: "{{ mysql_apt_config }}"
             question: "{{ mysql_apt_config }}/select-server"
-            value: "mysql-{{ mysql_release }}"
+            value: "mysql-{{ _mysql_release_short }}"
             vtype: select
 
         - name: Activate MySQL release version
