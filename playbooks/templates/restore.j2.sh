@@ -27,13 +27,19 @@ function restore_xbstream {
   gid=$(stat -c %g "${mysql_data_dir}")
   uid=$(stat -c %u "${mysql_data_dir}")
   rm -rf "${mysql_data_dir:?}"/*
-  xbstream -x -C "${restore_dir}" <"${backup_file}"
-  xtrabackup --decompress --target-dir="${restore_dir}" --remove-original
+  xbstream -v -C "${restore_dir}" -x <"${backup_file}"
+  xtrabackup --decompress --target-dir="${restore_dir}"
   xtrabackup --prepare --target-dir="${restore_dir}"
   xtrabackup --copy-back --target-dir="${restore_dir}"
   chown -R "${uid}":"${gid}" "${mysql_data_dir}"
   systemctl start mysql
   rm -rf "${restore_dir:?}"
+  echo "dba.configureInstance('clusteradmin@localhost:3306')" > cluster.js
+  echo "cluster= dba.createCluster('test_cluster')" >> cluster.js
+  echo "cluster.addInstance('clusteradmin@${hostname}:3306')" >> cluster.js
+  echo "cluster.status()" >> cluster.js
+  mysqlsh \c clusteradmin@localhost:3306 --file cluster.js
+  rm cluster.js
 }
 
 function restore_mysqldump {
