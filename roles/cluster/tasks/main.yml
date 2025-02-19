@@ -101,7 +101,7 @@
 
 - name: Restart MySQL Server
   ansible.builtin.service:
-    name: "{{ mysql_server_package }}"
+    name: "{{ _mysql_server_daemon }}"
     state: restarted
   vars:
     _mysql_package: "{{ packages[mysql_server_package] }}"
