@@ -3,16 +3,9 @@
   ansible.builtin.assert:
     that: mysql_root_password is defined
 
-- name: Verify package preconditions
-  ansible.builtin.assert:
-    that: (mysql_cluster_packages is defined) or (_versioned | length > 0)
-  vars:
-    _versioned: "{{ _mysql_packages_versioned }}"
-
 - name: Set target package facts
   ansible.builtin.set_fact:
     mysql_cluster_packages: "{{ _mysql_packages }}"
-  when: mysql_cluster_packages is not defined
 
 - name: Debug package targets
   ansible.builtin.debug:
@@ -36,23 +29,33 @@
   ansible.builtin.package_facts:
     manager: auto
 
-- name: Unhold MySQL packages
-  ansible.builtin.dpkg_selections:
-    name: "{{ item }}"
-    selection: install
-  when: item in packages
-  loop: "{{ mysql_cluster_packages | map('split', '=') | map('first') }}"
-  changed_when: false
+- name: Get installed MySQL package version
+  when: mysql_server_package in packages
+  block:
+    - name: Query installed MySQL server package version
+      ansible.builtin.shell:
+        cmd: "dpkg-query -W -f='${Version}' {{ mysql_server_package }}"
+      changed_when: false
+      register: mysql_server_package_query
 
-- name: Set MySQL Server package version
-  ansible.builtin.set_fact:
-    mysql_package_version_installed: "{{ _mysql_version_installed if _mysql_package_query else _mysql_version_target }}"
-  vars:
-    _mysql_package_query: "{{ mysql_server_package in packages }}"
-    _mysql_package: "{{ packages[mysql_server_package] | default([]) }}"
-    _mysql_version_installed: "{{ _mysql_package | map(attribute='version') | first }}"
-    _mysql_server_package: "{{ mysql_cluster_packages | select('regex', mysql_server_package) }}"
-    _mysql_version_target: "{{ _mysql_server_package | map('split', '=') | map('last') | first }}"
+    - name: Set installed MySQL package version fact
+      ansible.builtin.set_fact:
+        mysql_package_version_installed: "{{ mysql_server_package_query.stdout }}"
+        mysql_server_installed: true
+
+- name: Get target MySQL package version
+  when: not mysql_server_package in packages
+  block:
+    - name: Query installed MySQL server package version
+      ansible.builtin.shell:
+        cmd: "apt-cache madison {{ _mysql_server_package }} | awk '{ print $3 }' | grep '^{{ _mysql_release }}' | sort -r | head -1"
+      changed_when: false
+      register: mysql_server_package_query
+
+    - name: Set installed MySQL package version fact
+      ansible.builtin.set_fact:
+        mysql_package_version_target: "{{ mysql_server_package_query.stdout }}"
+        mysql_server_installed: false
 
 - name: Include MySQL variables
   ansible.builtin.include_role:
@@ -88,13 +91,6 @@
         column_case_sensitive: true
       no_log: "{{ mysql_nolog | default(True) }}"
 
-- name: Hold MySQL packages
-  ansible.builtin.dpkg_selections:
-    name: "{{ item }}"
-    selection: hold
-  loop: "{{ mysql_cluster_packages | map('split', '=') | map('first') }}"
-  changed_when: false
-
 - name: Query installed packages
   ansible.builtin.package_facts:
     manager: auto
@@ -105,6 +101,7 @@
     state: restarted
   vars:
     _mysql_package: "{{ packages[mysql_server_package] }}"
-    _mysql_installed_version: "{{ mysql_package_version_installed }}"
+    _mysql_installed: "{{ mysql_server_installed | bool }}"
+    _mysql_package_version: "{{ mysql_package_version_installed if _mysql_installed else mysql_package_version_target }}"
     _mysql_installed_target: "{{ _mysql_package | map(attribute='version') | first }}"
-  when: _mysql_installed_version != _mysql_installed_target
+  when: _mysql_package_version != _mysql_installed_target

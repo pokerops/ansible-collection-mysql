@@ -9,7 +9,8 @@
     update_reboot: false
     update_cache_valid_time: 1
   roles:
-    - pokerops.mysql.update
+    - role: pokerops.mysql.update
+      when: ansible_os_family != 'Debian'
   pre_tasks:
     - name: Query MySQL Cluster status
       ansible.builtin.expect:
@@ -48,6 +49,14 @@
       ansible.builtin.service:
         name: mysql
         state: stopped
+
+    - name: Update MySQL server apt packages
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: "dist"
+        cache_valid_time: 1
+        state: "latest"
+      when: ansible_os_family == 'Debian'
 
   tasks:
     - name: Reboot node
