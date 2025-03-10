@@ -48,7 +48,7 @@
   block:
     - name: Query installed MySQL server package version
       ansible.builtin.shell:
-        cmd: "apt-cache madison {{ _mysql_server_package }} | awk '{ print $3 }' | grep '^{{ _mysql_release }}' | sort -r | head -1"
+        cmd: "apt-cache madison {{ mysql_server_package }} | awk '{ print $3 }' | grep '^{{ _mysql_release }}' | sort -r | head -1"
       changed_when: false
       register: mysql_server_package_query
 
