@@ -29,6 +29,14 @@
   ansible.builtin.package_facts:
     manager: auto
 
+- name: Unhold MySQL packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: install
+  when: item in packages
+  loop: "{{ mysql_cluster_packages }}"
+  changed_when: false
+
 - name: Get installed MySQL package version
   when: mysql_server_package in packages
   block:
