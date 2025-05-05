@@ -103,7 +103,7 @@
         responses:
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
-        timeout: 3
+        timeout: "{{ _mysql_query_timeout }}"
       loop: "{{ _mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
@@ -118,7 +118,7 @@
         responses:
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
-        timeout: 3
+        timeout: "{{ _mysql_query_timeout }}"
       loop: "{{ _mysql_cluster_hostgroups | intersect(groups.keys()) | map('extract', groups) | flatten | unique }}"
       no_log: "{{ mysql_nolog | default(True) }}"
       register: _mysqlsh_node_register
