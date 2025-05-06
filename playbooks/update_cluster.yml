@@ -22,7 +22,7 @@
         responses:
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
-        timeout: 3
+        timeout: "{{ _mysql_query_timeout }}"
       become: false
       register: _mysql_cluster_status_query
       changed_when: false
@@ -79,7 +79,7 @@
         responses:
           ".*> $": "\\q"
           ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
-        timeout: 3
+        timeout: "{{ _mysql_query_timeout }}"
       vars:
         _mysql_cluster_state: "{{ _mysql_cluster_status_query.stdout_lines | reject('match', '.*Please provide the password.*') }}"
         _mysql_cluster_status: "{{ _cluster_state | join(' ') | from_json }}"
