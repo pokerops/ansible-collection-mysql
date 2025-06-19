@@ -14,10 +14,11 @@ An [Ansible collection](https://galaxy.ansible.com/ui/repo/published/pokerops/my
 
 ## Collection hostgroups
 
-| Hostgroup           |       Default | Description        |
-| :------------------ | ------------: | :----------------- |
-| mysql_cluster_group | mysql_cluster | MySQL DBMS hosts   |
-| mysql_router_group  |  mysql_router | MySQL router hosts |
+| Hostgroup               |           Default | Description             |
+| :---------------------- | ----------------: | :---------------------- |
+| mysql_cluster_group     |     mysql_cluster | MySQL DBMS hosts        |
+| mysql_router_group      |      mysql_router | MySQL router hosts      |
+| mysql_update_skip_group | mysql_update_skip | MySQL update skip hosts |
 
 ## Collection variables
 

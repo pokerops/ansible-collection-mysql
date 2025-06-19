@@ -1,6 +1,6 @@
 ---
 - name: Update MySQL Router
-  hosts: "{{ mysql_update_group | default('mysql_router') }}"
+  hosts: "{{ mysql_update_group | default('mysql_router') }}:!{{ _mysql_update_skip_group }}"
   serial: "{{ mysql_update_serial | default(1) }}"
   become: true
   vars_files:
