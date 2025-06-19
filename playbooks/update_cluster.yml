@@ -1,6 +1,6 @@
 ---
 - name: Update MySQL Cluster members
-  hosts: "{{ mysql_update_group }}"
+  hosts: "{{ mysql_update_group }}:!{{ _mysql_update_skip_group }}"
   serial: "{{ mysql_update_serial | default(1) }}"
   become: true
   vars_files:
