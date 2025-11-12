@@ -1,1 +1,4 @@
 pokerops-mysql-*.tar.gz
+.ansible/
+ansible_collections/
+libvirt/
