@@ -49,14 +49,13 @@ Additionally parameters from Geerlinguy's MySQL [role](https://github.com/geerli
 
 ## Testing
 
-Please make sure your environment has [docker](https://www.docker.com) installed in order to run role validation tests.
+This collection uses Molecule for testing. To run tests:
 
-Role is tested against the following distributions (docker images):
-
-- Ubuntu Jammy
-- Ubuntu Focal
-
-You can test the collection directly from sources using command `make test`
+```bash
+devbox shell
+make install
+make test
+```
 
 ## License
 
