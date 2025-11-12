@@ -1,1 +1,17 @@
+# files
+.kubeconfig
+.env
+.python-version
+
+# directories
+.venv/
+.ansible/
+.devbox/
+.molecule/
+ansible_collections/
+libvirt/
+
+# globs
+**/__pycache__/**
 pokerops-mysql-*.tar.gz
+*.ymle

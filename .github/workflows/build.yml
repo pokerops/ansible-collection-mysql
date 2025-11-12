@@ -1,10 +1,10 @@
 ---
-name: lint
+name: build
 permissions:
   contents: read
 on:
   pull_request:
     branches: ["main", "master"]
 jobs:
-  lint:
-    uses: pokerops/ansible-utils/.github/workflows/lint.yml@master
+  build:
+    uses: pokerops/ansible-utils/.github/workflows/build.yml@master
