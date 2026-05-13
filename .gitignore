@@ -10,6 +10,8 @@
 .molecule/
 ansible_collections/
 libvirt/
+.project
+.settings
 
 # globs
 **/__pycache__/**
