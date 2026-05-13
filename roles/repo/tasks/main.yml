@@ -65,6 +65,11 @@
             value: Ok
             vtype: select
 
+        - name: Hold mysql-apt-config package
+          ansible.builtin.dpkg_selections:
+            name: "{{ mysql_apt_config }}"
+            selection: hold
+
         - name: Update apt cache
           ansible.builtin.apt:
             update_cache: yes
