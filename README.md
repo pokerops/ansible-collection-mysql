@@ -53,8 +53,8 @@ This collection uses Molecule for testing. To run tests:
 
 ```bash
 devbox shell
-make install
-make test
+just install
+just test
 ```
 
 ## License
