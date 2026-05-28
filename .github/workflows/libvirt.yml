@@ -26,10 +26,8 @@ jobs:
           - update
           - clusterset
         image:
-          - distro: jammy
-            url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
-          - distro: noble
-            url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+          - https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+          - https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
     env:
       MOLECULE_LOGDIR: "/tmp/logs"
       GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -40,8 +38,7 @@ jobs:
           run: >
             just
             --set MOLECULE_SCENARIO ${{ matrix.scenario }}
-            --set MOLECULE_KVM_DISTRO ${{ matrix.image.distro }}
-            --set MOLECULE_KVM_IMAGE ${{ matrix.image.url }}
+            --set MOLECULE_KVM_IMAGE ${{ matrix.image }}
             requirements test
 
       - name: Upload install logs
