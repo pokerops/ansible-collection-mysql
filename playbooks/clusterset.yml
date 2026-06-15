@@ -159,7 +159,7 @@
       vars:
         _member_add_cluster: "{{ _clusterset_member_add[item] }}"
         _member_add_replicas: "{{ _clusterset_member_add.keys() | difference(_clusterset_target_clusters.values()) }}"
-      loop: "{{ _member_add_replicas  }}"
+      loop: "{{ _member_add_replicas }}"
 
     - name: Remove MySQL ClusterSet replica cluster members
       ansible.builtin.command:
@@ -171,7 +171,7 @@
       vars:
         _member_del_cluster: "{{ _clusterset_actual_members[item] }}"
         _member_del_replicas: "{{ _clusterset_member_del.keys() | difference(_clusterset_actual_members.values()) }}"
-      loop: "{{ _member_del_replicas  }}"
+      loop: "{{ _member_del_replicas }}"
       when: _member_del_cluster not in _clusterset_cluster_del
 
     - name: Remove MySQL ClusterSet replica cluster
@@ -181,4 +181,4 @@
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
             --execute 'clusterset.removeCluster("{{ item }}", {force: true})'
-      loop: "{{ _clusterset_cluster_del  }}"
+      loop: "{{ _clusterset_cluster_del }}"
