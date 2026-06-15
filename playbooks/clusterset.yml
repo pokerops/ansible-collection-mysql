@@ -180,5 +180,5 @@
           mysqlsh --javascript --cluster
             --host {{ inventory_hostname }}
             --user {{ mysql_clusteradmin_username }}
-            --execute 'clusterset.removeCluster("{{ item }}")'
+            --execute 'clusterset.removeCluster("{{ item }}", {force: true})'
       loop: "{{ _clusterset_cluster_del  }}"
