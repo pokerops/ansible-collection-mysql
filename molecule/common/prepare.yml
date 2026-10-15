@@ -6,16 +6,16 @@
     - name: Update apt repos
       ansible.builtin.apt:
         update_cache: true
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts.os_family == 'Debian'
       changed_when: false
 
     - name: Install MySQL client package
       ansible.builtin.package:
         name: python3-mysqldb
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts.os_family == 'Debian'
 
     - name: Disable unattended upgrades
       ansible.builtin.package:
         name: unattended-upgrades
         state: absent
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts.os_family == 'Debian'

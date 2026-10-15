@@ -53,6 +53,7 @@
 
         - name: Debug MySQL Clusterset facts
           run_once: true
+          tags: skip_ansible_lint
           block:
             - name: Debug MySQL ClusterSet status
               ansible.builtin.debug:
@@ -97,5 +98,5 @@
             mysql_cluster_names: "{{ mysql_clusterset_status.clusters.keys() }}"
             mysql_all_hostgroup_prefix: "{{ mysql_group_prefix | default('_mysql') }}_verify_all"
             mysql_inventory_groups: "{{ groups.keys() | select('match', '^' + mysql_all_hostgroup_prefix + '_.*') }}"
-            mysql_inventory_clusters: "{{ mysql_inventory_groups | map('regex_replace', '^' + mysql_all_hostgroup_prefix + '_', '')  }}"
+            mysql_inventory_clusters: "{{ mysql_inventory_groups | map('regex_replace', '^' + mysql_all_hostgroup_prefix + '_', '') }}"
             mysql_target_clusters: "{{ mysql_verification_clusters | default(mysql_inventory_clusters) }}"

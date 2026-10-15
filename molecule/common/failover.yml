@@ -11,6 +11,7 @@
       vars:
         _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       register: _slave_query
+      changed_when: false
 
     - name: Stop play for slave nodes
       ansible.builtin.meta: end_host
@@ -49,6 +50,7 @@
       vars:
         _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       register: _slave_query
+      changed_when: false
 
     - name: Stop play for slave nodes
       ansible.builtin.meta: end_host
@@ -74,9 +76,10 @@
         _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       become: true
       register: _slave_cli_query
+      changed_when: false
 
     - name: Query MySQL Cluster status with explicit credentials
-      community.mysql.mysql_query:
+      ansible.mysql.mysql_query:
         query: SELECT @@global.super_read_only AS sro
         login_user: root
         login_password: supersecret

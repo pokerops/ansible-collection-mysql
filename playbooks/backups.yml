@@ -31,8 +31,9 @@
     - name: Install Percona XtraBackup
       ansible.builtin.apt:
         name: "{{ _mysql_xtrabackup_package }}"
-        update_cache: yes
+        update_cache: true
         state: latest
+      tags: skip_ansible_lint
 
     - name: Manage DB backup script
       ansible.builtin.template:

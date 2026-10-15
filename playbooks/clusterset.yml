@@ -25,6 +25,7 @@
             --user {{ mysql_clusteradmin_username }}
             --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
       register: _mysql_cluster_query
+      changed_when: false
 
     - name: Set MySQL Cluster status facts
       ansible.builtin.set_fact:
@@ -39,6 +40,7 @@
             --execute 'dba.getCluster("{{ mysql_cluster_name }}").createClusterSet("{{ mysql_clusterset_name }}")'
       register: _mysql_clusterset_query
       when: _domain_name not in _mysql_cluster_status
+      tags: skip_ansible_lint
 
     - name: Verify MySQL Cluster domain name
       ansible.builtin.assert:
@@ -53,6 +55,7 @@
             --user {{ mysql_clusteradmin_username }}
             --execute 'print(dba.getClusterSet().status({extended: 1}))'
       register: _mysql_clusterset_query
+      changed_when: false
 
     - name: Set MySQL Cluster status facts
       ansible.builtin.set_fact:
@@ -148,6 +151,7 @@
               {recoveryMethod: "clone"})'
       loop: "{{ _clusterset_cluster_add }}"
       register: _mysql_clusterset_create
+      tags: skip_ansible_lint
 
     - name: Add MySQL ClusterSet replica cluster members
       ansible.builtin.command:
@@ -160,6 +164,7 @@
         _member_add_cluster: "{{ _clusterset_member_add[item] }}"
         _member_add_replicas: "{{ _clusterset_member_add.keys() | difference(_clusterset_target_clusters.values()) }}"
       loop: "{{ _member_add_replicas }}"
+      tags: skip_ansible_lint
 
     - name: Remove MySQL ClusterSet replica cluster members
       ansible.builtin.command:
@@ -173,6 +178,7 @@
         _member_del_replicas: "{{ _clusterset_member_del.keys() | difference(_clusterset_actual_members.values()) }}"
       loop: "{{ _member_del_replicas }}"
       when: _member_del_cluster not in _clusterset_cluster_del
+      tags: skip_ansible_lint
 
     - name: Remove MySQL ClusterSet replica cluster
       ansible.builtin.command:
@@ -182,3 +188,4 @@
             --user {{ mysql_clusteradmin_username }}
             --execute 'clusterset.removeCluster("{{ item }}", {force: true})'
       loop: "{{ _clusterset_cluster_del }}"
+      tags: skip_ansible_lint

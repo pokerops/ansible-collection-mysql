@@ -9,6 +9,7 @@
       vars:
         _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       register: _slave_query
+      changed_when: false
 
     - name: Load sakila DB
       when: _slave_query.stdout | int == 0
@@ -30,6 +31,7 @@
                 dest: "{{ sakila_bundle }}"
                 http_agent: "curl/7.68.0"
               changed_when: false
+              tags: skip_ansible_lint
 
             - name: Unarchive sakila tarball
               ansible.builtin.unarchive:
@@ -38,21 +40,21 @@
                 remote_src: true
 
             - name: Drop sakila DB
-              community.mysql.mysql_db:
+              ansible.mysql.mysql_db:
                 name: sakila
                 state: absent
                 login_user: root
                 login_password: "{{ mysql_root_password }}"
 
             - name: Create sakila DB
-              community.mysql.mysql_db:
+              ansible.mysql.mysql_db:
                 name: sakila
                 state: present
                 login_user: root
                 login_password: "{{ mysql_root_password }}"
 
             - name: Manage sakila DB schema
-              community.mysql.mysql_db:
+              ansible.mysql.mysql_db:
                 name: sakila
                 state: import
                 login_user: root
@@ -60,7 +62,7 @@
                 target: "{{ mysql_tmpdir.path }}/sakila-db/sakila-schema.sql"
 
             - name: Manage sakila DB data
-              community.mysql.mysql_db:
+              ansible.mysql.mysql_db:
                 name: sakila
                 state: import
                 login_user: root
@@ -77,13 +79,14 @@
     - name: Take backup on node
       ansible.builtin.command:
         cmd: /usr/local/bin/mysql-backup
+      tags: skip_ansible_lint
 
 - name: Drop cluster data
   hosts: all
   become: true
   tasks:
     - name: List databases
-      community.mysql.mysql_query:
+      ansible.mysql.mysql_query:
         query: "SHOW databases"
         login_user: "{{ mysql_root_username | default('root') }}"
         login_password: "{{ mysql_root_password }}"
@@ -100,9 +103,10 @@
       vars:
         _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       register: _slave_query
+      changed_when: false
 
     - name: Drop sakila DB data
-      community.mysql.mysql_db:
+      ansible.mysql.mysql_db:
         name: sakila
         state: absent
         login_user: root
@@ -110,7 +114,7 @@
       when: _slave_query.stdout | int == 0
 
     - name: Verify sakila DB
-      community.mysql.mysql_query:
+      ansible.mysql.mysql_query:
         query: "SHOW databases"
         login_user: "{{ mysql_root_username | default('root') }}"
         login_password: "{{ mysql_root_password }}"
@@ -138,3 +142,4 @@
     - name: Restore cluster xbstream backup
       ansible.builtin.command:
         cmd: "/usr/local/bin/mysql-restore {{ backup_target }}"
+      tags: skip_ansible_lint

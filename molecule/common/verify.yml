@@ -32,7 +32,6 @@
     - name: Debug cluster status
       ansible.builtin.debug:
         var: _mysql_cluster_status
-      run_once: true
 
     - name: Verify MySQL Cluster name
       ansible.builtin.assert:
@@ -71,7 +70,7 @@
         that: services[mysql_router_daemon].state == 'running'
 
     - name: Verify MySQL Router master
-      community.mysql.mysql_query:
+      ansible.mysql.mysql_query:
         login_host: 127.0.0.1
         login_port: 3306
         login_user: clusteradmin
@@ -79,7 +78,7 @@
         query: "show databases"
 
     - name: Verify MySQL Router slave
-      community.mysql.mysql_query:
+      ansible.mysql.mysql_query:
         login_host: 127.0.0.1
         login_port: 3307
         login_user: clusteradmin

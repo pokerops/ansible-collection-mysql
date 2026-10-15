@@ -1,6 +1,6 @@
 ---
 - name: Update MySQL Cluster members
-  hosts: "{{ mysql_update_group }}:!{{ _mysql_update_skip_group }}"
+  hosts: "{{ mysql_update_group | default('_mysql_update_slave') }}:!{{ _mysql_update_skip_group }}"
   serial: "{{ mysql_update_serial | default(1) }}"
   become: true
   vars_files:
@@ -10,7 +10,7 @@
     update_cache_valid_time: 1
   roles:
     - role: pokerops.mysql.update
-      when: ansible_os_family != 'Debian'
+      when: ansible_facts.os_family != 'Debian'
   pre_tasks:
     - name: Query MySQL Cluster status
       ansible.builtin.expect:
@@ -56,7 +56,8 @@
         upgrade: "dist"
         cache_valid_time: 1
         state: "latest"
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts.os_family == 'Debian'
+      tags: skip_ansible_lint
 
   tasks:
     - name: Reboot node

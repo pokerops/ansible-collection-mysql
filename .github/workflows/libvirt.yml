@@ -44,7 +44,7 @@ jobs:
       - name: Upload install logs
         uses: actions/upload-artifact@v4
         with:
-          name: install.${{ matrix.image.distro }}
+          name: install.${{ matrix.image }}
           path: |
             ${{ env.MOLECULE_LOGDIR }}/*.log
           if-no-files-found: ignore

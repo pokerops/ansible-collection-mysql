@@ -29,7 +29,7 @@
         regexp: '^127\.0\.1\.1'
         state: absent
 
-    - name: Purge mysql-router cofiguration
+    - name: Purge mysql-router configuration
       when: _mysql_router_purge | bool
       block:
         - name: Purge MySQL Router packages
@@ -88,6 +88,7 @@
           [Install]
           WantedBy=multi-user.target
       notify: daemon_reload
+      tags: skip_ansible_lint
 
     - name: Flush handlers
       ansible.builtin.meta: flush_handlers
@@ -141,7 +142,7 @@
             timeout: 30
 
         - name: Verify MySQL Router master
-          community.mysql.mysql_query:
+          ansible.mysql.mysql_query:
             login_host: 127.0.0.1
             login_port: 3306
             login_user: "{{ mysql_clusteradmin_username }}"
@@ -149,7 +150,7 @@
             query: "show databases"
 
         - name: Verify MySQL Router slave
-          community.mysql.mysql_query:
+          ansible.mysql.mysql_query:
             login_host: 127.0.0.1
             login_port: 3307
             login_user: "{{ mysql_clusteradmin_username }}"
