@@ -1,6 +1,6 @@
 ---
 - name: Deploy Debian MySQL repository
-  when: ansible_os_family == 'Debian'
+  when: ansible_facts.os_family == 'Debian'
   block:
     - name: Create tempdir
       ansible.builtin.tempfile:

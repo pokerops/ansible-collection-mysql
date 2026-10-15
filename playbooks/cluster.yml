@@ -16,7 +16,7 @@
     - ../vars/default.yml
   tasks:
     - name: Query MySQL Cluster online membership
-      community.mysql.mysql_query:
+      ansible.mysql.mysql_query:
         query: "SELECT member_host FROM performance_schema.replication_group_members"
         login_user: "{{ mysql_root_username | default('root') }}"
         login_password: "{{ mysql_root_password }}"
@@ -59,6 +59,7 @@
           register: _mysql_check_instance
           failed_when: _mysql_check_instance.stderr is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_targets }}"
+          changed_when: false
 
         - name: Bootstrap MySQL Cluster
           ansible.builtin.command:
@@ -71,6 +72,7 @@
             _mysql_msg: "Cluster successfully created"
           register: _mysql_cluster_bootstrap
           failed_when: _mysql_cluster_bootstrap.stderr is not search(_mysql_msg)
+          tags: skip_ansible_lint
 
         - name: Add MySQL Cluster instances
           ansible.builtin.command:
@@ -85,6 +87,7 @@
           register: _mysql_cluster_join
           failed_when: _mysql_cluster_join.stderr is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_targets | difference([inventory_hostname]) }}"
+          tags: skip_ansible_lint
 
     - name: Manage MySQL Cluster state
       when: _mysql_cluster_online_members | length > 0
@@ -116,6 +119,7 @@
                 --user {{ mysql_clusteradmin_username }}
                 --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
           register: _mysql_cluster_query
+          changed_when: false
 
         - name: Set MySQL Cluster facts
           ansible.builtin.set_fact:
@@ -156,6 +160,7 @@
           register: _mysql_cluster_join
           failed_when: _mysql_cluster_join.stderr is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_member_add }}"
+          tags: skip_ansible_lint
 
         - name: Remove MySQL Cluster members
           ansible.builtin.command:
@@ -170,6 +175,7 @@
           register: _mysql_cluster_del
           failed_when: _mysql_cluster_del.stderr is not search(_mysql_msg)
           loop: "{{ _mysql_cluster_member_del }}"
+          tags: skip_ansible_lint
 
     - name: Manage MySQL Cluster DBs and users
       become: true

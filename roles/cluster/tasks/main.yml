@@ -73,7 +73,7 @@
 - name: Deploy MySQL packages
   ansible.builtin.include_role:
     name: pokerops.mysql.mysql
-    tasks_from: "setup-{{ ansible_os_family }}"
+    tasks_from: "setup-{{ ansible_facts.os_family }}"
   vars:
     mysql_packages: "{{ mysql_cluster_packages }}"
 
@@ -91,7 +91,7 @@
         tasks_from: "secure-installation"
 
     - name: Manage MySQL clusteradmin user
-      community.mysql.mysql_user:
+      ansible.mysql.mysql_user:
         name: "{{ mysql_clusteradmin_username }}"
         host: "%"
         password: "{{ mysql_clusteradmin_password }}"

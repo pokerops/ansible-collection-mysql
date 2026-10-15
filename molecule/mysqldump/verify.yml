@@ -6,7 +6,7 @@
   hosts: all
   tasks:
     - name: List databases
-      community.mysql.mysql_query:
+      ansible.mysql.mysql_query:
         query: "SHOW databases"
         login_user: "{{ mysql_root_username | default('root') }}"
         login_password: "{{ mysql_root_password }}"

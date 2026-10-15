@@ -1,7 +1,7 @@
 ---
 namespace: pokerops
 name: mysql
-version: 0.3.3
+version: 0.3.4
 readme: README.md
 authors:
   - Ted Cook <358176+teddyphreak@users.noreply.github.com>
@@ -9,10 +9,11 @@ description: your collection description
 license:
   - MIT
 tags:
+  - database
   - mysql
 dependencies:
   "nephelaiio.plugins": "*"
-  "community.mysql": "*"
+  "ansible.mysql": "*"
 repository: http://github.com/pokerops/ansible-collection-mysql
 documentation: http://github.com/pokerops/ansible-collection-mysql
 homepage: http://github.com/pokerops/ansible-collection-mysql

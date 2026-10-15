@@ -41,6 +41,7 @@
         _mysql_cmd: "SELECT MEMBER_HOST FROM {{ _mysql_table }} WHERE member_host='{{ inventory_hostname }}';"
       ignore_errors: true
       register: _member_query
+      changed_when: false
 
     - name: Debug node cluster membership
       ansible.builtin.debug:
@@ -53,6 +54,7 @@
         _mysql_cmd: "SELECT @@global.super_read_only AS sro"
       ignore_errors: true
       register: _slave_query
+      changed_when: false
 
     - name: Debug node cluster status
       ansible.builtin.debug:
@@ -94,7 +96,7 @@
         _masters: "{{ groups[_mysql_role_master] | default([]) }}"
         _slaves: "{{ groups[_mysql_role_slave] | default([]) }}"
         _unique_master: "{{ _masters | length < 2 }}"
-        _has_master: "{{ _masters | length > 0  }}"
+        _has_master: "{{ _masters | length > 0 }}"
         _has_slaves: "{{ _slaves | length > 0 }}"
         _slaves_have_master: "{{ not _has_slaves or _has_master }}"
         _mysqlrouters: "{{ groups[mysql_router_group | default('mysql_router')] | default([]) }}"
@@ -117,14 +119,14 @@
         msg: "Adding host to {{ _mysql_group_master if _master else _mysql_group_slave }} role group"
       vars:
         _master: "{{ inventory_hostname in _hosts_masters }}"
-        _slave: "{{ inventory_hostname  in _hosts_slaves }}"
+        _slave: "{{ inventory_hostname in _hosts_slaves }}"
 
     - name: Create cluster role groups
       ansible.builtin.group_by:
-        key: "{{ _mysql_group_master if _master else _mysql_group_slave  if _slave else _mysql_group_alien }}"
+        key: "{{ _mysql_group_master if _master else _mysql_group_slave if _slave else _mysql_group_alien }}"
       vars:
         _master: "{{ inventory_hostname in _hosts_masters }}"
-        _slave: "{{ inventory_hostname  in _hosts_slaves }}"
+        _slave: "{{ inventory_hostname in _hosts_slaves }}"
       changed_when: false
 
     - name: Create cluster name group
