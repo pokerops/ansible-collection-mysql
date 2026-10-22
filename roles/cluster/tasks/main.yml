@@ -29,16 +29,20 @@
   ansible.builtin.package_facts:
     manager: auto
 
+- name: Set packages fact
+  ansible.builtin.set_fact:
+    _packages: "{{ ansible_facts.packages }}"
+
 - name: Unhold MySQL packages
   ansible.builtin.dpkg_selections:
     name: "{{ item }}"
     selection: install
-  when: item in packages
+  when: item in _packages
   loop: "{{ mysql_cluster_packages }}"
   changed_when: false
 
 - name: Get installed MySQL package version
-  when: mysql_server_package in packages
+  when: mysql_server_package in _packages
   block:
     - name: Query installed MySQL server package version
       ansible.builtin.shell:
@@ -52,7 +56,7 @@
         mysql_server_installed: true
 
 - name: Get target MySQL package version
-  when: not mysql_server_package in packages
+  when: not mysql_server_package in _packages
   block:
     - name: Query installed MySQL server package version
       ansible.builtin.shell:
@@ -108,7 +112,8 @@
     name: "{{ _mysql_server_daemon }}"
     state: restarted
   vars:
-    _mysql_package: "{{ packages[mysql_server_package] }}"
+    _packages: "{{ ansible_facts.packages }}"
+    _mysql_package: "{{ _packages[mysql_server_package] }}"
     _mysql_installed: "{{ mysql_server_installed | bool }}"
     _mysql_package_version: "{{ mysql_package_version_installed if _mysql_installed else mysql_package_version_target }}"
     _mysql_installed_target: "{{ _mysql_package | map(attribute='version') | first }}"
