@@ -57,7 +57,7 @@
       register: _mysql_clusterset_query
       changed_when: false
 
-    - name: Set MySQL Cluster status facts
+    - name: Refresh MySQL Cluster status facts
       ansible.builtin.set_fact:
         _mysql_clusterset_status: "{{ _mysql_clusterset_query.stdout | from_json }}"
 
@@ -73,7 +73,7 @@
         _clustermember_names: "{{ _clustermember_data | map('map', attribute='address') | map('map', 'split', ':') | map('map', 'first') }}"
         _clustermember_clusters: "{{ _clustermember_names | zip(_clusternames) }}"
 
-    - name: Set MySQL ClusterSet facts
+    - name: Set MySQL ClusterSet member facts
       ansible.builtin.set_fact:
         _mysql_clusterset_member_clusters: "{{ _mysql_clusterset_member_clusters | combine(_cluster_members) }}"
       vars:
