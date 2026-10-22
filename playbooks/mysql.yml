@@ -18,6 +18,7 @@
 
 - name: Deploy MySQL packages on slave nodes
   hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_slave"
+  serial: "{{ _mysql_serial }}"
   become: true
   vars_files:
     - ../vars/default.yml

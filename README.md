@@ -39,6 +39,7 @@ The following is the list of parameters intended for end-user customization:
 | mysql_backup_cron_min       |                          00 | Backup crontab minute                             | false    |
 | mysql_backup_cron_hour      |                          04 | Backup crontab hour                               | false    |
 | mysql_backup_cron_dow       |                        \*\* | Backup crontab days of week                       | false    |
+| mysql_serial                |                           1 | Play execution in serial mode                     | false    |
 
 Additionally parameters from Geerlinguy's MySQL [role](https://github.com/geerlingguy/ansible-role-mysql) will be passed down to the wrapped role with the same semantics with cluster-aware operation
 

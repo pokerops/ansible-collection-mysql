@@ -113,7 +113,7 @@
         login_password: "{{ mysql_root_password }}"
       when: _slave_query.stdout | int == 0
 
-    - name: Verify sakila DB
+    - name: Refresh sakila DB
       ansible.mysql.mysql_query:
         query: "SHOW databases"
         login_user: "{{ mysql_root_username | default('root') }}"
