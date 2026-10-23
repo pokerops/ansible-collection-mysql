@@ -30,6 +30,26 @@
         mysql_root_password_update: false
         mysql_manage_security: false
 
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for SQL service startup
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 3306
+        timeout: 60
+
+    - name: Query node cluster status
+      ansible.builtin.command:
+        cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
+      vars:
+        _mysql_cmd: "SELECT @@global.super_read_only AS sro"
+      register: mysql_uptime
+      retries: 12
+      delay: 5
+      until: mysql_uptime is succeeded
+      changed_when: false
+
 - name: Deploy MySQL packages on master nodes
   hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_master"
   become: true
@@ -53,6 +73,26 @@
       loop: "{{ groups[mysql_cluster_group | default('mysql_cluster')] }}"
       delegate_to: "{{ item }}"
       delegate_facts: true
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for SQL service startup
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 3306
+        timeout: 60
+
+    - name: Query node cluster status
+      ansible.builtin.command:
+        cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
+      vars:
+        _mysql_cmd: "SELECT @@global.super_read_only AS sro"
+      register: mysql_uptime
+      retries: 12
+      delay: 5
+      until: mysql_uptime is succeeded
+      changed_when: false
 
 - name: Distribute MySQL my.cnf to slave nodes
   hosts: "{{ mysql_group_prefix | default('_mysql') }}_install_slave"
