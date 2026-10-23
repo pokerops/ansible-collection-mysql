@@ -39,31 +39,15 @@
         port: 3306
         timeout: 60
 
-    - name: Verify MySQL Cluster and member status
-      ansible.builtin.expect:
-        command: >
-          mysqlsh --javascript --password --save-passwords=always --quiet-start=2
-            --host {{ inventory_hostname }}
-            --user {{ mysql_clusteradmin_username }}
-            --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
-        responses:
-          ".*> $": "\\q"
-          ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
-        timeout: "{{ _mysql_query_timeout }}"
+    - name: Query node cluster status
+      ansible.builtin.command:
+        cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:
-        _mysql_cluster_state: "{{ _mysql_cluster_status_query.stdout_lines | reject('match', '.*Please provide the password.*') }}"
-        _mysql_cluster_status: "{{ _cluster_state | join(' ') | from_json }}"
-        _mysql_member_status: "{{ _mysql_cluster_status.defaultReplicaSet.topology.values() }}"
-        _mysql_member_online: "{{ _mysql_member_status | selectattr('status', 'equalto', 'ONLINE') }}"
-        _mysql_member_ok: "{{ _mysql_member_online | map(attribute='address') | map('split', ':') | map('first') }}"
-      become: false
-      register: _mysql_cluster_status_query
-      retries: 5
-      delay: 60
-      until:
-        - _mysql_cluster_status_query is succeeded
-        - _mysql_cluster_status.defaultReplicaSet.status == "OK"
-        - inventory_hostname in _mysql_member_ok
+        _mysql_cmd: "SHOW GLOBAL STATUS LIKE 'Uptime'"
+      register: mysql_uptime
+      retries: 12
+      delay: 5
+      until: mysql_uptime is succeeded
       changed_when: false
 
 - name: Deploy MySQL packages on master nodes
@@ -99,31 +83,15 @@
         port: 3306
         timeout: 60
 
-    - name: Verify MySQL Cluster and member status
-      ansible.builtin.expect:
-        command: >
-          mysqlsh --javascript --password --save-passwords=always --quiet-start=2
-            --host {{ inventory_hostname }}
-            --user {{ mysql_clusteradmin_username }}
-            --execute 'print(dba.getCluster("{{ mysql_cluster_name }}").status())'
-        responses:
-          ".*> $": "\\q"
-          ".*Please provide the password for.*": "{{ mysql_clusteradmin_password }}"
-        timeout: "{{ _mysql_query_timeout }}"
+    - name: Query node cluster status
+      ansible.builtin.command:
+        cmd: "mysql -h '127.0.0.1' -sN -e '{{ _mysql_cmd }}'"
       vars:
-        _mysql_cluster_state: "{{ _mysql_cluster_status_query.stdout_lines | reject('match', '.*Please provide the password.*') }}"
-        _mysql_cluster_status: "{{ _cluster_state | join(' ') | from_json }}"
-        _mysql_member_status: "{{ _mysql_cluster_status.defaultReplicaSet.topology.values() }}"
-        _mysql_member_online: "{{ _mysql_member_status | selectattr('status', 'equalto', 'ONLINE') }}"
-        _mysql_member_ok: "{{ _mysql_member_online | map(attribute='address') | map('split', ':') | map('first') }}"
-      become: false
-      register: _mysql_cluster_status_query
-      retries: 5
-      delay: 60
-      until:
-        - _mysql_cluster_status_query is succeeded
-        - _mysql_cluster_status.defaultReplicaSet.status == "OK"
-        - inventory_hostname in _mysql_member_ok
+        _mysql_cmd: "SHOW GLOBAL STATUS LIKE 'Uptime'"
+      register: mysql_uptime
+      retries: 12
+      delay: 5
+      until: mysql_uptime is succeeded
       changed_when: false
 
 - name: Distribute MySQL my.cnf to slave nodes
